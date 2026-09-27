@@ -6,22 +6,6 @@
 <title>Auditorías — Prototipo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<style>
-/* ===== Login gate ===== */
-#loginScreen{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px;padding-top:calc(24px + env(safe-area-inset-top,0px));padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))}
-#loginScreen.hide{display:none}
-.login-card{width:100%;max-width:380px;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:32px 28px}
-.login-card label{display:block;font-size:12.5px;color:var(--ink-soft);margin:0 0 5px;font-family:var(--mono)}
-.login-card input{width:100%;border:1px solid var(--line);border-radius:3px;padding:10px 11px;background:var(--paper);color:var(--ink);font-size:14px;margin-bottom:16px}
-.login-card input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-.login-err{background:var(--vencbg);color:var(--venc);border-radius:3px;padding:9px 11px;font-size:13px;margin:0 0 16px;display:none}
-.login-err.show{display:block}
-.userbadge{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-soft)}
-.userbadge b{color:var(--ink);font-weight:600}
-.userbadge button{border:1px solid var(--line);background:none;color:var(--ink-soft);border-radius:3px;padding:5px 10px;cursor:pointer;font-size:12px}
-#appScreen.hide{display:none}
-</style>
 <style>
 :root{
  --ink:#1B2430; --ink-soft:#5B677A; --paper:#F7F6F2; --panel:#FFFFFF; --line:#DEDACD;
@@ -111,31 +95,52 @@ button:focus-visible,select:focus-visible,textarea:focus-visible,input:focus-vis
 .toast{background:var(--ink);color:var(--paper);font-size:13px;padding:9px 16px;border-radius:99px;box-shadow:0 4px 14px rgba(0,0,0,.18);animation:toastIn .18s ease, toastOut .25s ease 2.6s forwards}
 @keyframes toastIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 @keyframes toastOut{to{opacity:0;transform:translateY(-4px)}}
+/* ---------- Login (Supabase) ---------- */
+body.locked header, body.locked main{display:none}
+body:not(.locked) #auth{display:none}
+#auth{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px}
+.auth-card{width:100%;max-width:380px;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:28px 24px}
+.auth-card .brand{font-size:22px;margin:0 0 4px}
+.auth-card h2{font-family:var(--serif);font-size:17px;margin:18px 0 14px}
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.field label{font-size:12.5px;color:var(--ink-soft);font-weight:500}
+.field input{border:1px solid var(--line);border-radius:3px;padding:10px 11px;background:var(--paper);color:var(--ink);font-size:14px}
+.auth-card .btn{width:100%;margin-top:4px}
+.auth-links{display:flex;justify-content:space-between;gap:10px;margin-top:14px;font-size:12.5px;flex-wrap:wrap}
+.linkbtn{background:none;border:none;color:var(--accent);cursor:pointer;padding:0;font-size:12.5px;text-decoration:underline}
+.auth-msg{font-size:13px;border-radius:3px;padding:9px 11px;margin-bottom:12px;display:none}
+.auth-msg.err{display:block;background:var(--vencbg);color:var(--venc);border:1px solid var(--venc)}
+.auth-msg.ok{display:block;background:var(--donebg);color:var(--done);border:1px solid var(--done)}
+.auth-cfg{font-size:12px;background:var(--revbg);color:var(--rev);border:1px solid var(--rev);border-radius:3px;padding:9px 11px;margin-top:10px}
+.userbox{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-soft)}
+.userbox .btn{padding:6px 12px;font-size:12.5px}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body>
-
-<div id="loginScreen">
- <div class="login-card">
-  <div class="brand" style="font-family:var(--serif);font-weight:700;font-size:19px;margin:0 0 2px">Check<span style="color:var(--accent)">List</span> · Auditorías</div>
-  <p class="sub" style="color:var(--ink-soft);font-size:13px;margin:0 0 26px">Inicia sesión para continuar</p>
-  <form id="formLogin">
-   <div class="login-err" id="loginErr"></div>
-   <label for="email">Correo</label>
-   <input id="email" type="email" autocomplete="username" value="oamavizca@kuroda.com" required>
-   <label for="pass">Contraseña</label>
-   <input id="pass" type="password" autocomplete="current-password" required>
-   <button class="btn" style="width:100%" id="btnEntrar" type="submit">Entrar</button>
+<body class="locked">
+<section id="auth">
+ <div class="auth-card">
+  <div class="brand">Check<span>List</span> · Auditorías</div>
+  <h2 id="authTitle">Iniciar sesión</h2>
+  <div class="auth-msg" id="authMsg"></div>
+  <form id="authForm" novalidate>
+   <div class="field" id="fNombre" style="display:none"><label for="aNombre">Nombre completo</label><input id="aNombre" autocomplete="name"></div>
+   <div class="field"><label for="aEmail">Correo electrónico</label><input id="aEmail" type="email" autocomplete="email" required></div>
+   <div class="field" id="fPass"><label for="aPass">Contraseña</label><input id="aPass" type="password" autocomplete="current-password" minlength="6" required></div>
+   <button class="btn" type="submit" id="authBtn">Entrar</button>
   </form>
+  <div class="auth-links">
+   <button class="linkbtn" type="button" id="lnkModo">Crear cuenta</button>
+   <button class="linkbtn" type="button" id="lnkReset">¿Olvidaste tu contraseña?</button>
+  </div>
+  <div class="auth-cfg" id="authCfg" style="display:none">Falta configurar Supabase: edita <code>SUPABASE_URL</code> y <code>SUPABASE_ANON_KEY</code> al inicio del script de login.</div>
  </div>
-</div>
-
-<div id="appScreen" class="hide">
+</section>
 <header>
  <div class="htop">
   <div class="brand">Check<span>List</span> · Auditorías</div>
   <select id="selSucursal"></select>
-  <div class="userbadge" id="userBadge"><b id="userNombre">—</b>&nbsp;· <span id="userRol">—</span> <button id="btnSalir">Salir</button></div>
+  <div class="userbox"><span id="userEmail"></span><button class="btn ghost" id="btnLogout">Salir</button></div>
  </div>
  <nav>
   <button data-v="audit" class="on">Auditoría</button>
@@ -145,7 +150,6 @@ button:focus-visible,select:focus-visible,textarea:focus-visible,input:focus-vis
 </header>
 <main id="app"></main>
 <div class="toasts" id="toasts"></div>
-</div>
 
 <script>
 const RAZONES = {KSA:'KSA — Supervisor Mazatlán', KNO:'KNO — Supervisor Tijuana', KSC:'KSC — Supervisor Obregón'};
@@ -205,10 +209,14 @@ function toast(msg){
  box.appendChild(el); setTimeout(()=>el.remove(), 3000);
 }
 
+// Escapa texto escrito por usuarios antes de insertarlo con innerHTML
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
 function makeTask(q, sucursal){
  tid++;
  return {id:'T'+tid, qid:q.id, texto:q.texto, area:q.area, instruccion:q.instruccion, sucursal,
-  estado:'Pendiente', diasResolver:20, diasAprobar:3, colabComentario:'', colabFoto:false, auditorComentario:''};
+  estado:'Pendiente', diasResolver:20, diasAprobar:3, colabComentario:'', colabFoto:false, auditorComentario:'',
+  auditorEvidencia:'', auditorFoto:false};
 }
 // seed demo data so Reportes no arranca vacío
 (function seed(){
@@ -225,7 +233,7 @@ function makeTask(q, sucursal){
  }
 })();
 
-let state = { sucursal: SUCURSALES[0].c, view:'audit', rolTareas:'Jefe de Almacén', respuestas:{}, comentarios:{}, fotos:{} };
+let state = { sucursal: SUCURSALES[0].c, view:'audit', rolTareas:'Jefe de Almacén', respuestas:{}, comentarios:{}, fotos:{}, firmas:{jefe:false, gerente:false}, ultimoResultado:'' };
 
 const selSuc = document.getElementById('selSucursal');
 ['KSA','KNO','KSC'].forEach(r=>{
@@ -264,41 +272,48 @@ function renderAudit(){
     </div>
    </div>
    <div class="qmore">
-    <textarea placeholder="Comentario (opcional)" data-c="${q.id}" rows="1">${state.comentarios[q.id]||''}</textarea>
+    <textarea placeholder="Comentario (opcional)" data-c="${q.id}" rows="1">${esc(state.comentarios[q.id])}</textarea>
     <button class="foto-btn ${foto?'on':''}" data-f="${q.id}">${foto?'📷 Foto adjunta':'📷 Adjuntar foto'}</button>
    </div>
   </div>`;
  });
- html += `<div class="sec-title">Firmas</div><div class="card"><label style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><input type="checkbox" id="firma1"> Firma del jefe de almacén</label>
-  <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="firma2"> Firma del gerente</label></div>`;
- html += `<div id="resultBox"></div><div class="stickybar"><span class="progtxt" style="margin-right:auto;align-self:center">${contestadas} de ${QUESTIONS.length} contestadas</span><button class="btn" id="btnCalificar" ${contestadas===0?'disabled':''}>Calificar y generar tareas</button></div>`;
+ const firmado = state.firmas.jefe && state.firmas.gerente;
+ html += `<div class="sec-title">Firmas</div><div class="card"><label style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><input type="checkbox" id="firma1" ${state.firmas.jefe?'checked':''}> Firma del jefe de almacén</label>
+  <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="firma2" ${state.firmas.gerente?'checked':''}> Firma del gerente</label></div>`;
+ html += `<div id="resultBox">${state.ultimoResultado}</div><div class="stickybar"><span class="progtxt" style="margin-right:auto;align-self:center">${contestadas} de ${QUESTIONS.length} contestadas${contestadas>0&&!firmado?' · faltan firmas':''}</span><button class="btn" id="btnCalificar" ${contestadas===0||!firmado?'disabled':''}>Calificar y generar tareas</button></div>`;
  document.getElementById('app').innerHTML = html;
 
  document.querySelectorAll('.toggle button').forEach(b=>b.addEventListener('click', e=>{
   const qid = e.target.parentElement.dataset.q;
   state.respuestas[qid] = e.target.dataset.v;
+  state.ultimoResultado = '';
   renderAudit();
  }));
+ document.getElementById('firma1').addEventListener('change', e=>{ state.firmas.jefe = e.target.checked; renderAudit(); });
+ document.getElementById('firma2').addEventListener('change', e=>{ state.firmas.gerente = e.target.checked; renderAudit(); });
  document.querySelectorAll('[data-c]').forEach(t=>t.addEventListener('input', e=>{ state.comentarios[e.target.dataset.c]=e.target.value; }));
  document.querySelectorAll('[data-f]').forEach(b=>b.addEventListener('click', e=>{ const id=e.target.dataset.f; state.fotos[id]=!state.fotos[id]; renderAudit(); }));
  document.getElementById('btnCalificar').addEventListener('click', ()=>{
+  if(!(state.firmas.jefe && state.firmas.gerente)){ toast('Faltan las firmas del jefe de almacén y del gerente'); return; }
   let creadas = [];
   QUESTIONS.forEach(q=>{
    const v = state.respuestas[q.id];
    if(v && incumple(q,v)){
     const t = makeTask(q, state.sucursal);
-    t.colabComentario=''; // evidencia del auditor se guarda aparte
+    t.auditorEvidencia = (state.comentarios[q.id]||'').trim();
+    t.auditorFoto = !!state.fotos[q.id];
     TASKS.push(t);
     creadas.push(t);
     notif(`Tarea creada en ${state.sucursal}: "${q.texto}" → ${AREA_COLAB[q.area]} (correo/push)`);
    }
   });
-  const box = document.getElementById('resultBox');
-  box.innerHTML = creadas.length
+  state.ultimoResultado = creadas.length
    ? `<div class="result"><strong>${creadas.length} tarea(s) generada(s)</strong> en ${s.t}. Se notificó por correo/push al responsable de cada una.<ul style="margin:8px 0 0">${creadas.map(t=>`<li>${t.texto} — ${AREA_COLAB[t.area]}</li>`).join('')}</ul></div>`
    : `<div class="result">Sin incumplimientos detectados en las preguntas contestadas. No se generaron tareas.</div>`;
   toast(creadas.length ? `Check list calificado — ${creadas.length} tarea(s) generada(s)` : 'Check list calificado');
-  state.respuestas={}; state.comentarios={}; state.fotos={};
+  state.respuestas={}; state.comentarios={}; state.fotos={}; state.firmas={jefe:false, gerente:false};
+  renderAudit();
+  window.scrollTo({top:0, behavior:'smooth'});
  });
 }
 
@@ -362,6 +377,8 @@ function taskCardColab(t){
  return `<div class="taskcard"><div class="taskhead"><h4>${t.texto}</h4>${badge(t)}</div>
   <div class="meta">${t.sucursal} · ${AREA_COLAB[t.area]} · vence en ${t.diasResolver} día(s)</div>
   <div class="evid"><strong>Instrucción:</strong> ${t.instruccion}</div>
+  ${t.auditorEvidencia||t.auditorFoto?`<div class="evid"><strong>Hallazgo del auditor:</strong> ${esc(t.auditorEvidencia)||'—'}${t.auditorFoto?' · 📷 foto adjunta':''}</div>`:''}
+  ${t.auditorComentario?`<div class="evid" style="border-color:var(--venc);background:var(--vencbg)"><strong>Rechazada por el auditor:</strong> ${esc(t.auditorComentario)}</div>`:''}
   <textarea rows="2" placeholder="Comentario al resolver" data-cin="${t.id}" style="width:100%;border:1px solid var(--line);border-radius:3px;padding:7px 9px;background:var(--paper);color:var(--ink)"></textarea>
   <div class="row2"><button class="foto-btn" data-fin="${t.id}">📷 Adjuntar foto</button><button class="btn" data-send="${t.id}">Enviar a aprobación</button></div>
  </div>`;
@@ -369,7 +386,8 @@ function taskCardColab(t){
 function taskCardAuditor(t){
  return `<div class="taskcard"><div class="taskhead"><h4>${t.texto}</h4>${badge(t)}</div>
   <div class="meta">${t.sucursal} · ${AREA_COLAB[t.area]} · aprobar en ${t.diasAprobar} día(s)</div>
-  <div class="evid"><strong>Evidencia del colaborador:</strong> ${t.colabComentario||'—'} ${t.colabFoto?' · 📷 foto adjunta':''}</div>
+  ${t.auditorEvidencia||t.auditorFoto?`<div class="evid"><strong>Hallazgo original:</strong> ${esc(t.auditorEvidencia)||'—'}${t.auditorFoto?' · 📷 foto adjunta':''}</div>`:''}
+  <div class="evid"><strong>Evidencia del colaborador:</strong> ${esc(t.colabComentario)||'—'} ${t.colabFoto?' · 📷 foto adjunta':''}</div>
   <textarea rows="2" placeholder="Comentario (obligatorio si rechazas)" data-rjc="${t.id}" style="width:100%;border:1px solid var(--line);border-radius:3px;padding:7px 9px;background:var(--paper);color:var(--ink)"></textarea>
   <div class="row2"><button class="btn" data-ap="${t.id}">Aprobar</button><button class="btn ghost" data-rj="${t.id}">Rechazar</button></div>
  </div>`;
@@ -415,51 +433,105 @@ function render(){
  else if(state.view==='tasks') renderTasks();
  else renderDash();
 }
+render();
+</script>
 
-// ===== Login gate (Supabase Auth) =====
+<script>
+/* ============ LOGIN CON SUPABASE ============
+   Pega aquí los datos de TU proyecto NUEVO de Supabase
+   (Dashboard → Project Settings → API). Usa la clave "anon"/"publishable", nunca la service_role. */
 const SUPABASE_URL = 'https://prqgywyhszivaqkppalx.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBycWd5d3loc3ppdmFxa3BwYWx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4MzM4MTYsImV4cCI6MjEwMDQwOTgxNn0.RLby7xZL26Z4QBJL2v7HebxRw6FSCRgbm52K86CIW3Q';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const SUPABASE_ANON_KEY = 'sb_publishable_YG2hI2w5D7JiXAmfdIQSUQ_FwSnUdXH';
 
-const loginScreen = document.getElementById('loginScreen');
-const appScreen = document.getElementById('appScreen');
-const formLogin = document.getElementById('formLogin');
-const loginErr = document.getElementById('loginErr');
-const btnEntrar = document.getElementById('btnEntrar');
+const configurado = !SUPABASE_URL.includes('TU-PROYECTO') && !SUPABASE_ANON_KEY.includes('TU-ANON');
+const sb = configurado ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
-function showLoginErr(msg){ loginErr.textContent = msg; loginErr.classList.add('show'); }
-function clearLoginErr(){ loginErr.classList.remove('show'); loginErr.textContent=''; }
+const $ = id => document.getElementById(id);
+let modo = 'login'; // login | signup | reset | newpass
 
-async function enterApp(authUser){
- const { data: perfil } = await sb.from('usuarios').select('nombre, rol, puesto').eq('auth_user_id', authUser.id).maybeSingle();
- document.getElementById('userNombre').textContent = perfil?.nombre || authUser.email;
- document.getElementById('userRol').textContent = perfil?.rol || 'Sin perfil';
- loginScreen.classList.add('hide');
- appScreen.classList.remove('hide');
- render();
+const TEXTOS = {
+ login:  {t:'Iniciar sesión', b:'Entrar', l:'Crear cuenta'},
+ signup: {t:'Crear cuenta', b:'Registrarme', l:'Ya tengo cuenta'},
+ reset:  {t:'Recuperar contraseña', b:'Enviar enlace', l:'Volver a iniciar sesión'},
+ newpass:{t:'Nueva contraseña', b:'Guardar contraseña', l:'Volver a iniciar sesión'}
+};
+function setModo(m){
+ modo = m; msg('');
+ $('authTitle').textContent = TEXTOS[m].t;
+ $('authBtn').textContent = TEXTOS[m].b;
+ $('lnkModo').textContent = TEXTOS[m].l;
+ $('fNombre').style.display = m==='signup' ? '' : 'none';
+ $('fPass').style.display = m==='reset' ? 'none' : '';
+ $('aEmail').parentElement.style.display = m==='newpass' ? 'none' : '';
+ $('aPass').autocomplete = (m==='login') ? 'current-password' : 'new-password';
+ $('lnkReset').style.display = m==='login' ? '' : 'none';
+}
+function msg(text, tipo='err'){ const el=$('authMsg'); el.textContent=text; el.className='auth-msg'+(text?' '+tipo:''); }
+function traducir(e){
+ const m = (e && e.message) || String(e);
+ if(/Invalid login credentials/i.test(m)) return 'Correo o contraseña incorrectos.';
+ if(/Email not confirmed/i.test(m)) return 'Confirma tu correo antes de iniciar sesión (revisa tu bandeja).';
+ if(/already registered/i.test(m)) return 'Ese correo ya está registrado.';
+ if(/at least 6/i.test(m)) return 'La contraseña debe tener al menos 6 caracteres.';
+ if(/rate limit/i.test(m)) return 'Demasiados intentos. Espera un momento e inténtalo de nuevo.';
+ return m;
 }
 
-formLogin.addEventListener('submit', async (e)=>{
+function mostrarApp(session){
+ const logged = !!session && modo!=='newpass';
+ document.body.classList.toggle('locked', !logged);
+ if(logged){
+  const u = session.user;
+  $('userEmail').textContent = (u.user_metadata && u.user_metadata.nombre) || u.email;
+ }
+}
+
+$('lnkModo').addEventListener('click', ()=> setModo(modo==='login' ? 'signup' : 'login'));
+$('lnkReset').addEventListener('click', ()=> setModo('reset'));
+
+$('authForm').addEventListener('submit', async e=>{
  e.preventDefault();
- clearLoginErr();
- btnEntrar.disabled = true; btnEntrar.textContent = 'Entrando…';
- const email = document.getElementById('email').value.trim();
- const password = document.getElementById('pass').value;
- const { data, error } = await sb.auth.signInWithPassword({ email, password });
- btnEntrar.disabled = false; btnEntrar.textContent = 'Entrar';
- if(error){ showLoginErr(error.message === 'Invalid login credentials' ? 'Correo o contraseña incorrectos.' : error.message); return; }
- await enterApp(data.user);
+ if(!sb){ msg('Supabase no está configurado.'); return; }
+ const email = $('aEmail').value.trim(), pass = $('aPass').value, nombre = $('aNombre').value.trim();
+ if(modo!=='newpass' && !email){ msg('Escribe tu correo.'); return; }
+ if(modo!=='reset' && pass.length<6){ msg('La contraseña debe tener al menos 6 caracteres.'); return; }
+ const btn = $('authBtn'); btn.disabled = true; const txt = btn.textContent; btn.textContent = 'Procesando…';
+ try{
+  if(modo==='login'){
+   const {error} = await sb.auth.signInWithPassword({email, password:pass});
+   if(error) throw error;
+  } else if(modo==='signup'){
+   const {data, error} = await sb.auth.signUp({email, password:pass, options:{data:{nombre}, emailRedirectTo: location.href.split('#')[0]}});
+   if(error) throw error;
+   if(!data.session){ setModo('login'); msg('Cuenta creada. Revisa tu correo para confirmarla y luego inicia sesión.','ok'); }
+  } else if(modo==='reset'){
+   const {error} = await sb.auth.resetPasswordForEmail(email, {redirectTo: location.href.split('#')[0]});
+   if(error) throw error;
+   msg('Si el correo existe, te enviamos un enlace para restablecer la contraseña.','ok');
+  } else if(modo==='newpass'){
+   const {error} = await sb.auth.updateUser({password:pass});
+   if(error) throw error;
+   setModo('login'); toast('Contraseña actualizada');
+   const {data} = await sb.auth.getSession(); mostrarApp(data.session);
+  }
+ }catch(err){ msg(traducir(err)); }
+ finally{ btn.disabled = false; if(btn.textContent==='Procesando…') btn.textContent = txt; }
 });
 
-document.getElementById('btnSalir').addEventListener('click', async ()=>{
- await sb.auth.signOut();
- appScreen.classList.add('hide');
- loginScreen.classList.remove('hide');
- document.getElementById('pass').value='';
-});
+$('btnLogout').addEventListener('click', async ()=>{ if(sb) await sb.auth.signOut(); });
 
-// Si ya había una sesión activa (recarga de página), entra directo
-sb.auth.getSession().then(({data})=>{ if(data.session) enterApp(data.session.user); });
+if(!sb){
+ $('authCfg').style.display = '';
+ $('authBtn').disabled = true;
+} else {
+ sb.auth.onAuthStateChange((event, session)=>{
+  if(event==='PASSWORD_RECOVERY'){ setModo('newpass'); document.body.classList.add('locked'); return; }
+  if(event==='SIGNED_IN' && modo!=='newpass') toast('Bienvenido');
+  if(event==='SIGNED_OUT'){ setModo('login'); $('aPass').value=''; }
+  mostrarApp(session);
+ });
+ sb.auth.getSession().then(({data})=> mostrarApp(data.session));
+}
 </script>
 </body>
 </html>
