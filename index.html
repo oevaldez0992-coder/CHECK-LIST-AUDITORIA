@@ -3,384 +3,109 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Auditorías — Prototipo</title>
+<title>Iniciar sesión — Auditorías</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
 :root{
  --ink:#1B2430; --ink-soft:#5B677A; --paper:#F7F6F2; --panel:#FFFFFF; --line:#DEDACD;
- --accent:#8A5A2B; --accent-bg:#F2E4D3;
- --pend:#B4682B; --pendbg:#F7E7D8; --venc:#B23A2E; --vencbg:#F6DAD6;
- --rev:#8A6D1E; --revbg:#F3EACB; --done:#3F6B4A; --donebg:#DEEAE0;
+ --accent:#8A5A2B; --accent-bg:#F2E4D3; --err:#B23A2E; --errbg:#F6DAD6;
  --serif:'IBM Plex Serif',Georgia,serif; --sans:'IBM Plex Sans',system-ui,sans-serif; --mono:'IBM Plex Mono',monospace;
 }
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
- --ink:#EDEAE2; --ink-soft:#A9B2C0; --paper:#161512; --panel:#201E1A; --line:#39352C; --accent:#D9A870; --accent-bg:#332A1D;
- --pend:#E3A46A; --pendbg:#33261A; --venc:#E28A7D; --vencbg:#3A2420; --rev:#D9C168; --revbg:#312B17; --done:#8FC29E; --donebg:#1D2C22;
+ --ink:#EDEAE2; --ink-soft:#A9B2C0; --paper:#161512; --panel:#201E1A; --line:#39352C; --accent:#D9A870; --accent-bg:#332A1D; --err:#E28A7D; --errbg:#3A2420;
 }}
-:root[data-theme="dark"]{
- --ink:#EDEAE2; --ink-soft:#A9B2C0; --paper:#161512; --panel:#201E1A; --line:#39352C; --accent:#D9A870; --accent-bg:#332A1D;
- --pend:#E3A46A; --pendbg:#33261A; --venc:#E28A7D; --vencbg:#3A2420; --rev:#D9C168; --revbg:#312B17; --done:#8FC29E; --donebg:#1D2C22;
-}
+:root[data-theme="dark"]{ --ink:#EDEAE2; --ink-soft:#A9B2C0; --paper:#161512; --panel:#201E1A; --line:#39352C; --accent:#D9A870; --accent-bg:#332A1D; --err:#E28A7D; --errbg:#3A2420; }
 *{box-sizing:border-box}
-html{scroll-padding-top:env(safe-area-inset-top,0px)}
-body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-header{position:sticky;top:0;top:env(safe-area-inset-top,0px);background:var(--paper);border-bottom:1px solid var(--line);z-index:5;padding:14px 18px}
-.htop{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;max-width:1000px;margin:0 auto}
-.brand{font-family:var(--serif);font-weight:700;font-size:17px;margin-right:auto}
+body{margin:0;min-height:100dvh;display:flex;align-items:center;justify-content:center;background:var(--paper);color:var(--ink);font-family:var(--sans);padding:24px;padding-top:calc(24px + env(safe-area-inset-top,0px));padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))}
+.card{width:100%;max-width:380px;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:32px 28px}
+.brand{font-family:var(--serif);font-weight:700;font-size:19px;margin:0 0 2px}
 .brand span{color:var(--accent)}
-select,textarea,button,input{font-family:var(--sans);font-size:13.5px}
-select{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:3px;padding:7px 9px}
-nav{display:flex;gap:4px;max-width:1000px;margin:10px auto 0;flex-wrap:wrap}
-nav button{background:none;border:1px solid transparent;border-bottom:2px solid transparent;color:var(--ink-soft);padding:8px 12px;cursor:pointer;font-weight:500;border-radius:3px 3px 0 0}
-nav button.on{color:var(--ink);border-bottom:2px solid var(--accent)}
-main{max-width:1000px;margin:0 auto;padding:22px 18px 90px}
-h1.pt{font-family:var(--serif);font-size:22px;margin:0 0 4px}
-.sub{color:var(--ink-soft);font-size:13.5px;margin:0 0 20px}
-.sec-title{font-family:var(--mono);font-size:12px;letter-spacing:.02em;color:var(--accent);margin:26px 0 8px;text-transform:uppercase}
-.sec-title:first-child{margin-top:0}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:14px 16px;margin-bottom:10px}
-.qrow{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
-.qtxt{font-size:14.5px;max-width:56ch}
-.toggle{display:flex;gap:6px;flex-shrink:0}
-.toggle button{border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:6px 14px;border-radius:3px;cursor:pointer;font-weight:500}
-.toggle button.sel-si{background:var(--vencbg);border-color:var(--venc);color:var(--venc)}
-.toggle button.sel-no{background:var(--donebg);border-color:var(--done);color:var(--done)}
-.qmore{display:flex;gap:8px;margin-top:10px;align-items:flex-start}
-.qmore textarea{flex:1;border:1px solid var(--line);border-radius:3px;padding:7px 9px;resize:vertical;min-height:34px;background:var(--paper);color:var(--ink)}
-.foto-btn{border:1px dashed var(--line);background:var(--paper);color:var(--ink-soft);border-radius:3px;padding:7px 10px;cursor:pointer;white-space:nowrap}
-.foto-btn.on{border-style:solid;border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
-.badge{font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:99px;white-space:nowrap}
-.b-pend{background:var(--pendbg);color:var(--pend)} .b-venc{background:var(--vencbg);color:var(--venc)}
-.b-rev{background:var(--revbg);color:var(--rev)} .b-done{background:var(--donebg);color:var(--done)}
-.btn{border:1px solid var(--ink);background:var(--ink);color:var(--paper);padding:10px 18px;border-radius:3px;cursor:pointer;font-weight:600}
-.btn:disabled{opacity:.4;cursor:not-allowed}
-.btn.ghost{background:none;color:var(--ink);border-color:var(--line)}
-.result{background:var(--accent-bg);border:1px solid var(--accent);border-radius:4px;padding:14px 16px;margin:16px 0;font-size:14px}
-.taskcard{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:14px 16px;margin-bottom:12px}
-.taskhead{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:6px}
-.taskhead h4{margin:0;font-size:14.5px;font-family:var(--sans)}
-.meta{font-size:12px;color:var(--ink-soft);margin-bottom:8px}
-.evid{background:var(--paper);border:1px solid var(--line);border-radius:3px;padding:9px 11px;font-size:13px;margin:8px 0}
-.row2{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
-.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:14px 0 20px}
-.stat{border:1px solid var(--line);border-radius:4px;padding:14px 16px}
-.stat .n{font-family:var(--serif);font-size:28px;font-weight:700;line-height:1}
-.stat .l{font-size:12px;color:var(--ink-soft);margin-top:3px}
-.stat.pend{background:var(--pendbg)} .stat.venc{background:var(--vencbg)} .stat.rev{background:var(--revbg)} .stat.done{background:var(--donebg)}
-.stat.pend .n{color:var(--pend)} .stat.venc .n{color:var(--venc)} .stat.rev .n{color:var(--rev)} .stat.done .n{color:var(--done)}
-.bars{display:flex;flex-direction:column;gap:8px;margin:10px 0 20px}
-.bar-row{display:grid;grid-template-columns:150px 1fr 28px;gap:8px;align-items:center;font-size:12.5px}
-.bar-track{background:var(--paper);border:1px solid var(--line);border-radius:2px;height:12px;overflow:hidden}
-.bar-fill{height:100%;background:var(--pend)}
-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
-th{font-family:var(--mono);font-size:10.5px;text-align:left;color:var(--ink-soft);padding:7px 8px;border-bottom:1px solid var(--ink)}
-td{padding:7px 8px;border-bottom:1px solid var(--line)}
-.notiffeed{font-size:12.5px;color:var(--ink-soft);max-height:170px;overflow-y:auto;border:1px solid var(--line);border-radius:4px;padding:10px 12px;background:var(--panel)}
-.notiffeed div{padding:3px 0;border-bottom:1px dashed var(--line)}
-.notiffeed div:last-child{border-bottom:none}
-.filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
-.empty{color:var(--ink-soft);font-size:13.5px;padding:20px 0;text-align:center}
-@media(max-width:560px){table{display:block;overflow-x:auto}}
-button:focus-visible,select:focus-visible,textarea:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-#app{animation:fadeIn .18s ease}
-@keyframes fadeIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
-@media (prefers-reduced-motion:reduce){#app{animation:none}}
-.progwrap{display:flex;align-items:center;gap:10px;margin:0 0 18px}
-.progtrack{flex:1;height:6px;border-radius:99px;background:var(--line);overflow:hidden}
-.progfill{height:100%;background:var(--accent);transition:width .25s ease}
-.progtxt{font-family:var(--mono);font-size:11.5px;color:var(--ink-soft);white-space:nowrap}
-.stickybar{position:sticky;bottom:0;bottom:env(safe-area-inset-bottom,0px);background:var(--paper);border-top:1px solid var(--line);margin:20px -18px -90px;padding:12px 18px calc(12px + env(safe-area-inset-bottom,0px));display:flex;justify-content:flex-end;gap:10px}
-.toasts{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:50;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
-.toast{background:var(--ink);color:var(--paper);font-size:13px;padding:9px 16px;border-radius:99px;box-shadow:0 4px 14px rgba(0,0,0,.18);animation:toastIn .18s ease, toastOut .25s ease 2.6s forwards}
-@keyframes toastIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-@keyframes toastOut{to{opacity:0;transform:translateY(-4px)}}
+.sub{color:var(--ink-soft);font-size:13px;margin:0 0 26px}
+label{display:block;font-size:12.5px;color:var(--ink-soft);margin:0 0 5px;font-family:var(--mono)}
+input{width:100%;border:1px solid var(--line);border-radius:3px;padding:10px 11px;background:var(--paper);color:var(--ink);font-size:14px;margin-bottom:16px}
+input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.btn{width:100%;border:1px solid var(--ink);background:var(--ink);color:var(--paper);padding:11px 18px;border-radius:3px;cursor:pointer;font-weight:600;font-size:14px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.err{background:var(--errbg);color:var(--err);border-radius:3px;padding:9px 11px;font-size:13px;margin:0 0 16px;display:none}
+.err.show{display:block}
+.panel-ok{display:none;text-align:center}
+.panel-ok.show{display:block}
+.panel-ok .n{font-family:var(--serif);font-size:20px;font-weight:600;margin:14px 0 4px}
+.panel-ok .r{display:inline-block;font-family:var(--mono);font-size:11.5px;color:var(--accent);background:var(--accent-bg);padding:3px 10px;border-radius:99px;margin-bottom:22px}
+.avatar{width:52px;height:52px;border-radius:50%;background:var(--accent-bg);color:var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-weight:700;font-size:20px;margin:0 auto}
+.ghost{background:none;color:var(--ink);border:1px solid var(--line)}
+#formLogin.hide,#panelOk.hide{display:none}
 </style>
 </head>
 <body>
-<header>
- <div class="htop">
-  <div class="brand">Check<span>List</span> · Auditorías</div>
-  <select id="selSucursal"></select>
+<div class="card">
+ <div class="brand">Check<span>List</span> · Auditorías</div>
+ <p class="sub">Acceso de administrador</p>
+
+ <form id="formLogin">
+  <div class="err" id="err"></div>
+  <label for="email">Correo</label>
+  <input id="email" type="email" autocomplete="username" value="oamavizca@kuroda.com" required>
+  <label for="pass">Contraseña</label>
+  <input id="pass" type="password" autocomplete="current-password" required>
+  <button class="btn" id="btnEntrar" type="submit">Entrar</button>
+ </form>
+
+ <div class="panel-ok" id="panelOk">
+  <div class="avatar" id="avatarTxt">OA</div>
+  <div class="n" id="nombreTxt">—</div>
+  <div class="r" id="rolTxt">—</div>
+  <button class="btn ghost" id="btnSalir">Cerrar sesión</button>
  </div>
- <nav>
-  <button data-v="audit" class="on">Auditoría</button>
-  <button data-v="tasks">Tareas</button>
-  <button data-v="dash">Reportes</button>
- </nav>
-</header>
-<main id="app"></main>
-<div class="toasts" id="toasts"></div>
+</div>
 
 <script>
-const RAZONES = {KSA:'KSA — Supervisor Mazatlán', KNO:'KNO — Supervisor Tijuana', KSC:'KSC — Supervisor Obregón'};
-const SUCURSALES = [
-['KC00','CEDIS PALMITO','KSA'],['KC01','BRAVO','KSA'],['KC02','CALZADA','KSA'],['KC03','PROYECTOS','KSA'],
-['KC04','PALMITO','KSA'],['KC05','SANALONA','KSA'],['KC06','GUAMUCHIL','KSA'],['KC13','BIENESTAR','KSA'],
-['KC15','OUTLET MOCHIS','KSA'],['KC16','ECONOSALDOS','KSA'],['KC17','GUASAVE','KSA'],['KC20','NAVOLATO','KSA'],
-['KC22','HUERTAS','KSA'],['KC23','PAPALOTE','KSA'],['KC24','COSTARICA','KSA'],['KC26','PROYECTOS MAZATLAN','KSA'],
-['KN00','KN 20 DE NOV MENUDEO','KNO'],['KN01','KN EXPRESS','KNO'],['KN03','KN ENSENADA MAYOREO','KNO'],
-['KN04','KN ENSENADA MENUDEO','KNO'],['KN05','KN MEXICALI MENUDEO','KNO'],['KN06','KN MEXICALI MAYOREO','KNO'],
-['KN07','KN PEÑASCO','KNO'],['KN09','KN MOSAIKOS','KNO'],['KN14','KN TIJUANA PROYECTOS','KNO'],
-['KN15','KN BO VALLE DE GPE.','KNO'],['KN16','KN CEDIS TECATE','KNO'],['KN17','KN ROSARITO','KNO'],
-['KN18','KN PEDREGAL','KNO'],['KN19','KN TECATE','KNO'],['KN21','NOGALES','KNO'],
-['KS00','KS MATRIZ','KSC'],['KS01','KS PROYECTOS','KSC'],['KS02','KS PLOMELEC PERIFERICO','KSC'],
-['KS03','KS TIANGUIS PERISUR','KSC'],['KS05','KS TIANGUIS HILLO','KSC'],['KS07','KS OBREGON','KSC'],
-['KS08','KS NAVOJOA','KSC'],['KS09','KS MORELOS','KSC'],['KS10','CEDIS PALO VERDE','KSC'],
-['KS11','KS HUATABAMPO','KSC'],['KS15','KS SAN JOSE DEL CABO','KSC'],['KS16','KS CABOS SAN LUCAS','KSC'],
-['KS17','KS TIANGUIS OBREGON','KSC'],['KS21','KS PLOMELEC EXPRESS','KSC']
-].map(([c,t,r])=>({c,t,r}));
+const SUPABASE_URL = 'https://prqgywyhszivaqkppalx.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBycWd5d3loc3ppdmFxa3BwYWx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4MzM4MTYsImV4cCI6MjEwMDQwOTgxNn0.RLby7xZL26Z4QBJL2v7HebxRw6FSCRgbm52K86CIW3Q';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-const AREA_COLAB = {'Jefe de Almacen Operativo':'Jefe de Almacén','Jefe de Almacen Administrativo':'Jefe de Almacén','Gerente':'Gerente'};
-const QUESTIONS = [
-['Materiales','Material mal acomodado o estibado.','Negativo','Jefe de Almacen Operativo','Acomodar el material mal acomodado o estibado.'],
-['Materiales','Material fuera de ubicación.','Negativo','Jefe de Almacen Operativo','Acomodar el material en su ubicación.'],
-['Materiales','Material revuelto.','Negativo','Jefe de Almacen Operativo','Separar el material revuelto.'],
-['Materiales','Merma no reportada en la Mesa de Servicio.','Negativo','Jefe de Almacen Administrativo','Reportar en mesa de servicio el material dañado (merma).'],
-['Materiales','Merma validada pendiente de tirar.','Negativo','Jefe de Almacen Operativo','Realizar el retiro de la merma validada.'],
-['Materiales','Área destinada para merma.','Positivo','Jefe de Almacen Operativo','Asignar un lugar para la merma en el almacén.'],
-['Materiales','Devoluciones (garantías) de proveedor pendientes de procesar.','Negativo','Jefe de Almacen Administrativo','Reportar al gestor de devoluciones las garantías pendientes.'],
-['Materiales','Material dañado apto para venta no enviado a saldos.','Negativo','Gerente','Promover en saldos los materiales dañados aptos para venta.'],
-['Materiales','Muestras de proveedores sin utilizar.','Negativo','Gerente','Utilizar, desechar o vender las muestras de proveedores.'],
-['Pasillos','Material obstruyendo pasillos.','Negativo','Jefe de Almacen Operativo','Liberar los pasillos obstruidos por materiales.'],
-['Pasillos','Equipo o mobiliario obstruyendo pasillos.','Negativo','Jefe de Almacen Operativo','Liberar los pasillos obstruidos por equipo o mobiliario.'],
-['Pasillos','Accesos al almacén controlados.','Positivo','Jefe de Almacen Operativo','Delimitar los accesos al almacén para personal no autorizado.'],
-['Mobiliario y Equipo','Exhibidores en desuso o descompuestos.','Negativo','Gerente','Retirar los exhibidores que ya no se utilizan.'],
-['Mobiliario y Equipo','Mobiliario y equipo en desuso o descompuesto.','Negativo','Gerente','Solicitar la baja del mobiliario y equipo en desuso.'],
-['Mobiliario y Equipo','Equipo de cómputo en desuso o descompuesto.','Negativo','Gerente','Solicitar la baja del equipo de cómputo en desuso.'],
-['Site','Minisplit funcionando.','Positivo','Gerente','Solicitar a mantenimiento el cambio del minisplit.'],
-['Site','Materiales o equipo resguardado dentro del Site.','Negativo','Gerente','Retirar los materiales o equipos resguardados en el Site.'],
-['Site','Puerta del Site abierta.','Negativo','Gerente','Mantener cerrada la puerta del Site.'],
-['Site','Goteras.','Negativo','Gerente','Solicitar a mantenimiento la reparación de la gotera.'],
-['Site','Humedad.','Negativo','Gerente','Solicitar a mantenimiento la reparación de la humedad.'],
-['Basura','Documentos de archivo con antigüedad.','Negativo','Gerente','Enviar a la recicladora los documentos con antigüedad.'],
-['Basura','Acumulación de tarimas o cartón.','Negativo','Jefe de Almacen Operativo','Enviar a la recicladora las tarimas o cartón.'],
-['Basura','Basura en almacén (rafia, zunchos, cartones, etc.).','Negativo','Jefe de Almacen Operativo','Realizar limpieza y retiro de basura.'],
-['Basura','Artículos generales en desuso (limpieza, decoración).','Negativo','Jefe de Almacen Operativo','Tirar artículos de limpieza o decoración en desuso.'],
-['Basura','Material de construcción en almacén.','Negativo','Gerente','Retirar del almacén los materiales de construcción.']
-].map(([sec,texto,tipo,area,instruccion],i)=>({id:'q'+i,sec,texto,tipo,area,instruccion}));
+const form = document.getElementById('formLogin');
+const panelOk = document.getElementById('panelOk');
+const errBox = document.getElementById('err');
+const btn = document.getElementById('btnEntrar');
 
-let TASKS = [];
-let NOTIFS = [];
-let tid = 0;
-function notif(msg){ NOTIFS.unshift({t:new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}),msg}); if(NOTIFS.length>40) NOTIFS.pop(); }
-function toast(msg){
- const box = document.getElementById('toasts');
- const el = document.createElement('div'); el.className='toast'; el.textContent=msg;
- box.appendChild(el); setTimeout(()=>el.remove(), 3000);
+function showError(msg){ errBox.textContent = msg; errBox.classList.add('show'); }
+function clearError(){ errBox.classList.remove('show'); errBox.textContent=''; }
+
+async function showProfile(authUser){
+ const { data, error } = await sb.from('usuarios').select('nombre, rol, puesto').eq('auth_user_id', authUser.id).maybeSingle();
+ const nombre = data?.nombre || authUser.email;
+ const rol = data?.rol || 'Sin perfil en usuarios';
+ document.getElementById('nombreTxt').textContent = nombre;
+ document.getElementById('rolTxt').textContent = rol;
+ document.getElementById('avatarTxt').textContent = nombre.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+ form.classList.add('hide');
+ panelOk.classList.add('show');
 }
 
-function makeTask(q, sucursal){
- tid++;
- return {id:'T'+tid, qid:q.id, texto:q.texto, area:q.area, instruccion:q.instruccion, sucursal,
-  estado:'Pendiente', diasResolver:20, diasAprobar:3, colabComentario:'', colabFoto:false, auditorComentario:''};
-}
-// seed demo data so Reportes no arranca vacío
-(function seed(){
- const estados = ['Pendiente','Pendiente','Vencida','PorAprobar','Finalizada','Finalizada'];
- for(let i=0;i<26;i++){
-  const q = QUESTIONS[Math.floor(Math.random()*QUESTIONS.length)];
-  const s = SUCURSALES[Math.floor(Math.random()*SUCURSALES.length)];
-  const t = makeTask(q, s.c);
-  t.estado = estados[Math.floor(Math.random()*estados.length)];
-  if(t.estado==='Vencida') t.diasResolver=0;
-  if(t.estado==='PorAprobar'){ t.colabComentario='Se atendió lo señalado.'; t.colabFoto=true; t.diasAprobar=2; }
-  if(t.estado==='Finalizada'){ t.colabComentario='Resuelto conforme a instrucción.'; t.colabFoto=true; t.auditorComentario='Correcto, se aprueba.'; }
-  TASKS.push(t);
- }
-})();
-
-let state = { sucursal: SUCURSALES[0].c, view:'audit', rolTareas:'Jefe de Almacén', respuestas:{}, comentarios:{}, fotos:{} };
-
-const selSuc = document.getElementById('selSucursal');
-['KSA','KNO','KSC'].forEach(r=>{
- const og = document.createElement('optgroup'); og.label = RAZONES[r];
- SUCURSALES.filter(s=>s.r===r).forEach(s=>{ const o=document.createElement('option'); o.value=s.c; o.textContent=s.c+' — '+s.t; og.appendChild(o); });
- selSuc.appendChild(og);
+form.addEventListener('submit', async (e)=>{
+ e.preventDefault();
+ clearError();
+ btn.disabled = true; btn.textContent = 'Entrando…';
+ const email = document.getElementById('email').value.trim();
+ const password = document.getElementById('pass').value;
+ const { data, error } = await sb.auth.signInWithPassword({ email, password });
+ btn.disabled = false; btn.textContent = 'Entrar';
+ if(error){ showError(error.message === 'Invalid login credentials' ? 'Correo o contraseña incorrectos.' : error.message); return; }
+ await showProfile(data.user);
 });
-selSuc.value = state.sucursal;
-selSuc.addEventListener('change', e=>{ state.sucursal = e.target.value; render(); });
 
-document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click', ()=>{
- state.view = b.dataset.v;
- document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on', x===b));
- render();
-}));
+document.getElementById('btnSalir').addEventListener('click', async ()=>{
+ await sb.auth.signOut();
+ panelOk.classList.remove('show');
+ form.classList.remove('hide');
+ document.getElementById('pass').value = '';
+});
 
-function sucursalObj(c){ return SUCURSALES.find(s=>s.c===c); }
-function incumple(q, valor){ return q.tipo==='Negativo' ? valor==='Si' : valor==='No'; }
-
-function renderAudit(){
- const s = sucursalObj(state.sucursal);
- const contestadas = Object.keys(state.respuestas).length;
- let html = `<h1 class="pt">Calificar check list — Orden y Limpieza</h1><p class="sub">${s.c} · ${s.t} · folio se genera al calificar</p>
-  <div class="progwrap"><div class="progtrack"><div class="progfill" style="width:${contestadas/QUESTIONS.length*100}%"></div></div><span class="progtxt">${contestadas}/${QUESTIONS.length} contestadas</span></div>`;
- let lastSec='';
- QUESTIONS.forEach(q=>{
-  if(q.sec!==lastSec){ html += `<div class="sec-title">${q.sec}</div>`; lastSec=q.sec; }
-  const v = state.respuestas[q.id];
-  const foto = state.fotos[q.id];
-  html += `<div class="card">
-   <div class="qrow">
-    <div class="qtxt">${q.texto}</div>
-    <div class="toggle" data-q="${q.id}">
-     <button data-v="Si" class="${v==='Si'?'sel-si':''}">Sí</button>
-     <button data-v="No" class="${v==='No'?'sel-no':''}">No</button>
-    </div>
-   </div>
-   <div class="qmore">
-    <textarea placeholder="Comentario (opcional)" data-c="${q.id}" rows="1">${state.comentarios[q.id]||''}</textarea>
-    <button class="foto-btn ${foto?'on':''}" data-f="${q.id}">${foto?'📷 Foto adjunta':'📷 Adjuntar foto'}</button>
-   </div>
-  </div>`;
- });
- html += `<div class="sec-title">Firmas</div><div class="card"><label style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><input type="checkbox" id="firma1"> Firma del jefe de almacén</label>
-  <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="firma2"> Firma del gerente</label></div>`;
- html += `<div id="resultBox"></div><div class="stickybar"><span class="progtxt" style="margin-right:auto;align-self:center">${contestadas} de ${QUESTIONS.length} contestadas</span><button class="btn" id="btnCalificar" ${contestadas===0?'disabled':''}>Calificar y generar tareas</button></div>`;
- document.getElementById('app').innerHTML = html;
-
- document.querySelectorAll('.toggle button').forEach(b=>b.addEventListener('click', e=>{
-  const qid = e.target.parentElement.dataset.q;
-  state.respuestas[qid] = e.target.dataset.v;
-  renderAudit();
- }));
- document.querySelectorAll('[data-c]').forEach(t=>t.addEventListener('input', e=>{ state.comentarios[e.target.dataset.c]=e.target.value; }));
- document.querySelectorAll('[data-f]').forEach(b=>b.addEventListener('click', e=>{ const id=e.target.dataset.f; state.fotos[id]=!state.fotos[id]; renderAudit(); }));
- document.getElementById('btnCalificar').addEventListener('click', ()=>{
-  let creadas = [];
-  QUESTIONS.forEach(q=>{
-   const v = state.respuestas[q.id];
-   if(v && incumple(q,v)){
-    const t = makeTask(q, state.sucursal);
-    t.colabComentario=''; // evidencia del auditor se guarda aparte
-    TASKS.push(t);
-    creadas.push(t);
-    notif(`Tarea creada en ${state.sucursal}: "${q.texto}" → ${AREA_COLAB[q.area]} (correo/push)`);
-   }
-  });
-  const box = document.getElementById('resultBox');
-  box.innerHTML = creadas.length
-   ? `<div class="result"><strong>${creadas.length} tarea(s) generada(s)</strong> en ${s.t}. Se notificó por correo/push al responsable de cada una.<ul style="margin:8px 0 0">${creadas.map(t=>`<li>${t.texto} — ${AREA_COLAB[t.area]}</li>`).join('')}</ul></div>`
-   : `<div class="result">Sin incumplimientos detectados en las preguntas contestadas. No se generaron tareas.</div>`;
-  toast(creadas.length ? `Check list calificado — ${creadas.length} tarea(s) generada(s)` : 'Check list calificado');
-  state.respuestas={}; state.comentarios={}; state.fotos={};
- });
-}
-
-function renderTasks(){
- const s = sucursalObj(state.sucursal);
- let html = `<h1 class="pt">Tareas</h1><p class="sub">${s.c} · ${s.t}</p>
-  <div class="filters"><label style="font-size:12.5px;color:var(--ink-soft)">Actuar como&nbsp;
-   <select id="rolSel">
-    <option ${state.rolTareas==='Jefe de Almacén'?'selected':''}>Jefe de Almacén</option>
-    <option ${state.rolTareas==='Gerente'?'selected':''}>Gerente</option>
-    <option ${state.rolTareas==='Auditor'?'selected':''}>Auditor</option>
-   </select></label></div>`;
-
- const suc = TASKS.filter(t=>t.sucursal===state.sucursal);
- let list;
- if(state.rolTareas==='Auditor'){
-  list = suc.filter(t=>t.estado==='PorAprobar');
-  html += list.length ? '' : `<div class="empty">No hay tareas por aprobar en esta sucursal.</div>`;
-  list.forEach(t=> html += taskCardAuditor(t));
- } else {
-  list = suc.filter(t=>AREA_COLAB[t.area]===state.rolTareas && (t.estado==='Pendiente'||t.estado==='Vencida'));
-  html += list.length ? '' : `<div class="empty">No hay tareas pendientes para ${state.rolTareas} en esta sucursal.</div>`;
-  list.forEach(t=> html += taskCardColab(t));
- }
- document.getElementById('app').innerHTML = html;
- document.getElementById('rolSel').addEventListener('change', e=>{ state.rolTareas=e.target.value; renderTasks(); });
- document.querySelectorAll('[data-send]').forEach(b=>b.addEventListener('click', e=>{
-  const id=e.target.dataset.send; const t=TASKS.find(x=>x.id===id);
-  const c = document.querySelector(`[data-cin="${id}"]`).value.trim();
-  if(!c){ toast('Agrega un comentario antes de enviar a aprobación'); document.querySelector(`[data-cin="${id}"]`).focus(); return; }
-  t.colabComentario=c; t.colabFoto=document.querySelector(`[data-fin="${id}"]`).classList.contains('on');
-  t.estado='PorAprobar'; t.diasAprobar=3;
-  notif(`"${t.texto}" (${t.sucursal}) enviada a aprobación por ${AREA_COLAB[t.area]} → correo al Auditor`);
-  toast('Tarea enviada a aprobación');
-  renderTasks();
- }));
- document.querySelectorAll('[data-fin]').forEach(b=>b.addEventListener('click', e=>{ e.target.classList.toggle('on'); e.target.textContent = e.target.classList.contains('on')?'📷 Foto adjunta':'📷 Adjuntar foto'; }));
- document.querySelectorAll('[data-ap]').forEach(b=>b.addEventListener('click', e=>{
-  const id=e.target.dataset.ap; const t=TASKS.find(x=>x.id===id); t.estado='Finalizada';
-  notif(`"${t.texto}" (${t.sucursal}) aprobada y finalizada por el auditor`);
-  toast('Tarea aprobada y finalizada');
-  renderTasks();
- }));
- document.querySelectorAll('[data-rj]').forEach(b=>b.addEventListener('click', e=>{
-  const id=e.target.dataset.rj; const t=TASKS.find(x=>x.id===id);
-  const c = document.querySelector(`[data-rjc="${id}"]`).value.trim();
-  if(!c){ toast('Indica el motivo del rechazo'); document.querySelector(`[data-rjc="${id}"]`).focus(); return; }
-  t.auditorComentario=c; t.estado='Pendiente'; t.diasResolver=5;
-  notif(`"${t.texto}" (${t.sucursal}) rechazada por el auditor, vuelve a ${AREA_COLAB[t.area]}`);
-  toast('Tarea rechazada, regresa al colaborador');
-  renderTasks();
- }));
-}
-function badge(t){
- return t.estado==='Pendiente'?'<span class="badge b-pend">Pendiente</span>'
-  :t.estado==='Vencida'?'<span class="badge b-venc">Vencida</span>'
-  :t.estado==='PorAprobar'?'<span class="badge b-rev">Por aprobar</span>'
-  :'<span class="badge b-done">Finalizada</span>';
-}
-function taskCardColab(t){
- return `<div class="taskcard"><div class="taskhead"><h4>${t.texto}</h4>${badge(t)}</div>
-  <div class="meta">${t.sucursal} · ${AREA_COLAB[t.area]} · vence en ${t.diasResolver} día(s)</div>
-  <div class="evid"><strong>Instrucción:</strong> ${t.instruccion}</div>
-  <textarea rows="2" placeholder="Comentario al resolver" data-cin="${t.id}" style="width:100%;border:1px solid var(--line);border-radius:3px;padding:7px 9px;background:var(--paper);color:var(--ink)"></textarea>
-  <div class="row2"><button class="foto-btn" data-fin="${t.id}">📷 Adjuntar foto</button><button class="btn" data-send="${t.id}">Enviar a aprobación</button></div>
- </div>`;
-}
-function taskCardAuditor(t){
- return `<div class="taskcard"><div class="taskhead"><h4>${t.texto}</h4>${badge(t)}</div>
-  <div class="meta">${t.sucursal} · ${AREA_COLAB[t.area]} · aprobar en ${t.diasAprobar} día(s)</div>
-  <div class="evid"><strong>Evidencia del colaborador:</strong> ${t.colabComentario||'—'} ${t.colabFoto?' · 📷 foto adjunta':''}</div>
-  <textarea rows="2" placeholder="Comentario (obligatorio si rechazas)" data-rjc="${t.id}" style="width:100%;border:1px solid var(--line);border-radius:3px;padding:7px 9px;background:var(--paper);color:var(--ink)"></textarea>
-  <div class="row2"><button class="btn" data-ap="${t.id}">Aprobar</button><button class="btn ghost" data-rj="${t.id}">Rechazar</button></div>
- </div>`;
-}
-
-function renderDash(){
- const suc = TASKS;
- const c = e=>suc.filter(t=>t.estado===e).length;
- let html = `<h1 class="pt">Reportes</h1><p class="sub">Todas las sucursales · datos de demostración</p>
-  <div class="stat-grid">
-   <div class="stat pend"><div class="n">${c('Pendiente')}</div><div class="l">Pendientes</div></div>
-   <div class="stat venc"><div class="n">${c('Vencida')}</div><div class="l">Vencidas</div></div>
-   <div class="stat rev"><div class="n">${c('PorAprobar')}</div><div class="l">Por aprobar</div></div>
-   <div class="stat done"><div class="n">${c('Finalizada')}</div><div class="l">Finalizadas</div></div>
-  </div>`;
- const bySuc = {};
- suc.filter(t=>t.estado==='Pendiente'||t.estado==='Vencida').forEach(t=>{ bySuc[t.sucursal]=(bySuc[t.sucursal]||0)+1; });
- const top = Object.entries(bySuc).sort((a,b)=>b[1]-a[1]).slice(0,6);
- const max = top.length? top[0][1] : 1;
- html += `<div class="sec-title">Sucursales con más tareas abiertas</div><div class="bars">`;
- html += top.length ? top.map(([sc,n])=>{ const s=sucursalObj(sc); return `<div class="bar-row"><span>${sc} ${s?('· '+s.t.slice(0,14)):''}</span><div class="bar-track"><div class="bar-fill" style="width:${n/max*100}%"></div></div><span>${n}</span></div>`; }).join('') : '<div class="empty">Sin tareas abiertas.</div>';
- html += `</div>`;
- html += `<div class="sec-title">Detalle</div><table><tr><th>Sucursal</th><th>Pregunta</th><th>Área</th><th>Estado</th></tr>`;
- html += suc.slice(0,30).map(t=>`<tr><td>${t.sucursal}</td><td>${t.texto}</td><td>${AREA_COLAB[t.area]}</td><td>${badge(t)}</td></tr>`).join('');
- html += `</table>`;
- html += `<div class="row2" style="margin:18px 0"><button class="btn ghost" id="btnDia">Avanzar 1 día (simular plazos)</button></div>`;
- html += `<div class="sec-title">Notificaciones (correo/push simulado)</div><div class="notiffeed" id="feed">${NOTIFS.length?NOTIFS.map(n=>`<div>${n.t} — ${n.msg}</div>`).join(''):'<div>Sin notificaciones aún.</div>'}</div>`;
- document.getElementById('app').innerHTML = html;
- document.getElementById('btnDia').addEventListener('click', ()=>{
-  TASKS.forEach(t=>{
-   if(t.estado==='Pendiente'){ t.diasResolver--; if(t.diasResolver<=0){ t.estado='Vencida'; t.diasResolver=0;
-    const r = sucursalObj(t.sucursal).r;
-    notif(`VENCIDA "${t.texto}" (${t.sucursal}): correo a ${AREA_COLAB[t.area]}, Auditor, Gerente y ${RAZONES[r]}`); } }
-   else if(t.estado==='Vencida'){ /* sigue vencida, ya notificada */ }
-   else if(t.estado==='PorAprobar'){ t.diasAprobar--; if(t.diasAprobar<=0){ notif(`Recordatorio: "${t.texto}" (${t.sucursal}) sigue por aprobar, correo al Auditor`); t.diasAprobar=0; } }
-  });
-  renderDash();
- });
-}
-
-function render(){
- if(state.view==='audit') renderAudit();
- else if(state.view==='tasks') renderTasks();
- else renderDash();
-}
-render();
+// Si ya hay una sesión activa (recarga de página), la respeta
+sb.auth.getSession().then(({data})=>{ if(data.session) showProfile(data.session.user); });
 </script>
 </body>
 </html>
