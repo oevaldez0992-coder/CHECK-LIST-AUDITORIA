@@ -420,7 +420,7 @@ async function subirEvidencia(file, carpeta){
  return (data && data.signedUrl) || path;
 }
 
-/* ===================== FIRMAS (canvas) ===================== */
+/* ===================== FIRMAS (canvas, opcional) ===================== */
 function initFirma(canvasId, stateKey){
  const canvas = $(canvasId); if(!canvas) return;
  const ctx = canvas.getContext('2d');
@@ -476,7 +476,7 @@ function renderAudit(){
    </div>
   </div>`;
  });
- html += `<div class="sec-title">Firmas</div><div class="card">
+ html += `<div class="sec-title">Firmas de conformidad (opcional)</div><div class="card">
   <div style="margin-bottom:16px">
    <label style="font-size:12.5px;color:var(--ink-soft);display:block;margin-bottom:4px">Firma del jefe de almacén</label>
    <canvas id="firmaJefe" width="300" height="90" style="border:1px solid var(--line);border-radius:3px;background:var(--paper);touch-action:none;display:block;max-width:100%"></canvas>
@@ -488,8 +488,7 @@ function renderAudit(){
    <button type="button" class="linkbtn" id="limpiarGerente">Limpiar firma</button>
   </div>
  </div>`;
- const firmado = !!state.firmaJefe && !!state.firmaGerente;
- html += `<div id="resultBox">${state.ultimoResultado}</div><div class="stickybar"><span class="progtxt" style="margin-right:auto;align-self:center">${contestadas} de ${preguntas.length} contestadas${contestadas>0&&!firmado?' · faltan firmas':''}</span><button class="btn" id="btnCalificar" ${contestadas===0||!firmado?'disabled':''}>Calificar y generar tareas</button></div>`;
+ html += `<div id="resultBox">${state.ultimoResultado}</div><div class="stickybar"><span class="progtxt" style="margin-right:auto;align-self:center">${contestadas} de ${preguntas.length} contestadas</span><button class="btn" id="btnCalificar" ${contestadas===0?'disabled':''}>Calificar y generar tareas</button></div>`;
  document.getElementById('app').innerHTML = html;
 
  document.querySelectorAll('.toggle button').forEach(b=>b.addEventListener('click', e=>{
@@ -514,7 +513,6 @@ function renderAudit(){
 }
 
 async function calificar(){
- if(!(state.firmaJefe && state.firmaGerente)){ toast('Faltan las firmas del jefe de almacén y del gerente'); return; }
  const s = sucursalObj(state.sucursal);
  const btn = document.getElementById('btnCalificar'); btn.disabled = true; btn.textContent = 'Guardando…';
  try{
@@ -528,10 +526,10 @@ async function calificar(){
   }).select().single();
   if(e1) throw e1;
 
-  await sb.from('firmas').insert([
-   {auditoria_id:auditoria.id, rol_firmante:'Jefe de almacén', nombre:PERFIL.nombre, imagen_firma:state.firmaJefe},
-   {auditoria_id:auditoria.id, rol_firmante:'Gerente', nombre:PERFIL.nombre, imagen_firma:state.firmaGerente}
-  ]);
+  const firmas = [];
+  if(state.firmaJefe) firmas.push({auditoria_id:auditoria.id, rol_firmante:'Jefe de almacén', nombre:PERFIL.nombre, imagen_firma:state.firmaJefe});
+  if(state.firmaGerente) firmas.push({auditoria_id:auditoria.id, rol_firmante:'Gerente', nombre:PERFIL.nombre, imagen_firma:state.firmaGerente});
+  if(firmas.length) await sb.from('firmas').insert(firmas);
 
   let creadas = [];
   for(const [qid, valor] of respondidas){
