@@ -152,303 +152,14 @@ body:not(.locked) #auth{display:none}
 <div class="toasts" id="toasts"></div>
 
 <script>
-const RAZONES = {KSA:'KSA — Supervisor Mazatlán', KNO:'KNO — Supervisor Tijuana', KSC:'KSC — Supervisor Obregón'};
-const SUCURSALES = [
-['KC00','CEDIS PALMITO','KSA'],['KC01','BRAVO','KSA'],['KC02','CALZADA','KSA'],['KC03','PROYECTOS','KSA'],
-['KC04','PALMITO','KSA'],['KC05','SANALONA','KSA'],['KC06','GUAMUCHIL','KSA'],['KC13','BIENESTAR','KSA'],
-['KC15','OUTLET MOCHIS','KSA'],['KC16','ECONOSALDOS','KSA'],['KC17','GUASAVE','KSA'],['KC20','NAVOLATO','KSA'],
-['KC22','HUERTAS','KSA'],['KC23','PAPALOTE','KSA'],['KC24','COSTARICA','KSA'],['KC26','PROYECTOS MAZATLAN','KSA'],
-['KN00','KN 20 DE NOV MENUDEO','KNO'],['KN01','KN EXPRESS','KNO'],['KN03','KN ENSENADA MAYOREO','KNO'],
-['KN04','KN ENSENADA MENUDEO','KNO'],['KN05','KN MEXICALI MENUDEO','KNO'],['KN06','KN MEXICALI MAYOREO','KNO'],
-['KN07','KN PEÑASCO','KNO'],['KN09','KN MOSAIKOS','KNO'],['KN14','KN TIJUANA PROYECTOS','KNO'],
-['KN15','KN BO VALLE DE GPE.','KNO'],['KN16','KN CEDIS TECATE','KNO'],['KN17','KN ROSARITO','KNO'],
-['KN18','KN PEDREGAL','KNO'],['KN19','KN TECATE','KNO'],['KN21','NOGALES','KNO'],
-['KS00','KS MATRIZ','KSC'],['KS01','KS PROYECTOS','KSC'],['KS02','KS PLOMELEC PERIFERICO','KSC'],
-['KS03','KS TIANGUIS PERISUR','KSC'],['KS05','KS TIANGUIS HILLO','KSC'],['KS07','KS OBREGON','KSC'],
-['KS08','KS NAVOJOA','KSC'],['KS09','KS MORELOS','KSC'],['KS10','CEDIS PALO VERDE','KSC'],
-['KS11','KS HUATABAMPO','KSC'],['KS15','KS SAN JOSE DEL CABO','KSC'],['KS16','KS CABOS SAN LUCAS','KSC'],
-['KS17','KS TIANGUIS OBREGON','KSC'],['KS21','KS PLOMELEC EXPRESS','KSC']
-].map(([c,t,r])=>({c,t,r}));
-
-const AREA_COLAB = {'Jefe de Almacen Operativo':'Jefe de Almacén','Jefe de Almacen Administrativo':'Jefe de Almacén','Gerente':'Gerente'};
-const QUESTIONS = [
-['Materiales','Material mal acomodado o estibado.','Negativo','Jefe de Almacen Operativo','Acomodar el material mal acomodado o estibado.'],
-['Materiales','Material fuera de ubicación.','Negativo','Jefe de Almacen Operativo','Acomodar el material en su ubicación.'],
-['Materiales','Material revuelto.','Negativo','Jefe de Almacen Operativo','Separar el material revuelto.'],
-['Materiales','Merma no reportada en la Mesa de Servicio.','Negativo','Jefe de Almacen Administrativo','Reportar en mesa de servicio el material dañado (merma).'],
-['Materiales','Merma validada pendiente de tirar.','Negativo','Jefe de Almacen Operativo','Realizar el retiro de la merma validada.'],
-['Materiales','Área destinada para merma.','Positivo','Jefe de Almacen Operativo','Asignar un lugar para la merma en el almacén.'],
-['Materiales','Devoluciones (garantías) de proveedor pendientes de procesar.','Negativo','Jefe de Almacen Administrativo','Reportar al gestor de devoluciones las garantías pendientes.'],
-['Materiales','Material dañado apto para venta no enviado a saldos.','Negativo','Gerente','Promover en saldos los materiales dañados aptos para venta.'],
-['Materiales','Muestras de proveedores sin utilizar.','Negativo','Gerente','Utilizar, desechar o vender las muestras de proveedores.'],
-['Pasillos','Material obstruyendo pasillos.','Negativo','Jefe de Almacen Operativo','Liberar los pasillos obstruidos por materiales.'],
-['Pasillos','Equipo o mobiliario obstruyendo pasillos.','Negativo','Jefe de Almacen Operativo','Liberar los pasillos obstruidos por equipo o mobiliario.'],
-['Pasillos','Accesos al almacén controlados.','Positivo','Jefe de Almacen Operativo','Delimitar los accesos al almacén para personal no autorizado.'],
-['Mobiliario y Equipo','Exhibidores en desuso o descompuestos.','Negativo','Gerente','Retirar los exhibidores que ya no se utilizan.'],
-['Mobiliario y Equipo','Mobiliario y equipo en desuso o descompuesto.','Negativo','Gerente','Solicitar la baja del mobiliario y equipo en desuso.'],
-['Mobiliario y Equipo','Equipo de cómputo en desuso o descompuesto.','Negativo','Gerente','Solicitar la baja del equipo de cómputo en desuso.'],
-['Site','Minisplit funcionando.','Positivo','Gerente','Solicitar a mantenimiento el cambio del minisplit.'],
-['Site','Materiales o equipo resguardado dentro del Site.','Negativo','Gerente','Retirar los materiales o equipos resguardados en el Site.'],
-['Site','Puerta del Site abierta.','Negativo','Gerente','Mantener cerrada la puerta del Site.'],
-['Site','Goteras.','Negativo','Gerente','Solicitar a mantenimiento la reparación de la gotera.'],
-['Site','Humedad.','Negativo','Gerente','Solicitar a mantenimiento la reparación de la humedad.'],
-['Basura','Documentos de archivo con antigüedad.','Negativo','Gerente','Enviar a la recicladora los documentos con antigüedad.'],
-['Basura','Acumulación de tarimas o cartón.','Negativo','Jefe de Almacen Operativo','Enviar a la recicladora las tarimas o cartón.'],
-['Basura','Basura en almacén (rafia, zunchos, cartones, etc.).','Negativo','Jefe de Almacen Operativo','Realizar limpieza y retiro de basura.'],
-['Basura','Artículos generales en desuso (limpieza, decoración).','Negativo','Jefe de Almacen Operativo','Tirar artículos de limpieza o decoración en desuso.'],
-['Basura','Material de construcción en almacén.','Negativo','Gerente','Retirar del almacén los materiales de construcción.']
-].map(([sec,texto,tipo,area,instruccion],i)=>({id:'q'+i,sec,texto,tipo,area,instruccion}));
-
-let TASKS = [];
-let NOTIFS = [];
-let tid = 0;
-function notif(msg){ NOTIFS.unshift({t:new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}),msg}); if(NOTIFS.length>40) NOTIFS.pop(); }
-function toast(msg){
- const box = document.getElementById('toasts');
- const el = document.createElement('div'); el.className='toast'; el.textContent=msg;
- box.appendChild(el); setTimeout(()=>el.remove(), 3000);
-}
-
-// Escapa texto escrito por usuarios antes de insertarlo con innerHTML
-function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-
-function makeTask(q, sucursal){
- tid++;
- return {id:'T'+tid, qid:q.id, texto:q.texto, area:q.area, instruccion:q.instruccion, sucursal,
-  estado:'Pendiente', diasResolver:20, diasAprobar:3, colabComentario:'', colabFoto:false, auditorComentario:'',
-  auditorEvidencia:'', auditorFoto:false};
-}
-// seed demo data so Reportes no arranca vacío
-(function seed(){
- const estados = ['Pendiente','Pendiente','Vencida','PorAprobar','Finalizada','Finalizada'];
- for(let i=0;i<26;i++){
-  const q = QUESTIONS[Math.floor(Math.random()*QUESTIONS.length)];
-  const s = SUCURSALES[Math.floor(Math.random()*SUCURSALES.length)];
-  const t = makeTask(q, s.c);
-  t.estado = estados[Math.floor(Math.random()*estados.length)];
-  if(t.estado==='Vencida') t.diasResolver=0;
-  if(t.estado==='PorAprobar'){ t.colabComentario='Se atendió lo señalado.'; t.colabFoto=true; t.diasAprobar=2; }
-  if(t.estado==='Finalizada'){ t.colabComentario='Resuelto conforme a instrucción.'; t.colabFoto=true; t.auditorComentario='Correcto, se aprueba.'; }
-  TASKS.push(t);
- }
-})();
-
-let state = { sucursal: SUCURSALES[0].c, view:'audit', rolTareas:'Jefe de Almacén', respuestas:{}, comentarios:{}, fotos:{}, firmas:{jefe:false, gerente:false}, ultimoResultado:'' };
-
-const selSuc = document.getElementById('selSucursal');
-['KSA','KNO','KSC'].forEach(r=>{
- const og = document.createElement('optgroup'); og.label = RAZONES[r];
- SUCURSALES.filter(s=>s.r===r).forEach(s=>{ const o=document.createElement('option'); o.value=s.c; o.textContent=s.c+' — '+s.t; og.appendChild(o); });
- selSuc.appendChild(og);
-});
-selSuc.value = state.sucursal;
-selSuc.addEventListener('change', e=>{ state.sucursal = e.target.value; render(); });
-
-document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click', ()=>{
- state.view = b.dataset.v;
- document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on', x===b));
- render();
-}));
-
-function sucursalObj(c){ return SUCURSALES.find(s=>s.c===c); }
-function incumple(q, valor){ return q.tipo==='Negativo' ? valor==='Si' : valor==='No'; }
-
-function renderAudit(){
- const s = sucursalObj(state.sucursal);
- const contestadas = Object.keys(state.respuestas).length;
- let html = `<h1 class="pt">Calificar check list — Orden y Limpieza</h1><p class="sub">${s.c} · ${s.t} · folio se genera al calificar</p>
-  <div class="progwrap"><div class="progtrack"><div class="progfill" style="width:${contestadas/QUESTIONS.length*100}%"></div></div><span class="progtxt">${contestadas}/${QUESTIONS.length} contestadas</span></div>`;
- let lastSec='';
- QUESTIONS.forEach(q=>{
-  if(q.sec!==lastSec){ html += `<div class="sec-title">${q.sec}</div>`; lastSec=q.sec; }
-  const v = state.respuestas[q.id];
-  const foto = state.fotos[q.id];
-  html += `<div class="card">
-   <div class="qrow">
-    <div class="qtxt">${q.texto}</div>
-    <div class="toggle" data-q="${q.id}">
-     <button data-v="Si" class="${v==='Si'?'sel-si':''}">Sí</button>
-     <button data-v="No" class="${v==='No'?'sel-no':''}">No</button>
-    </div>
-   </div>
-   <div class="qmore">
-    <textarea placeholder="Comentario (opcional)" data-c="${q.id}" rows="1">${esc(state.comentarios[q.id])}</textarea>
-    <button class="foto-btn ${foto?'on':''}" data-f="${q.id}">${foto?'📷 Foto adjunta':'📷 Adjuntar foto'}</button>
-   </div>
-  </div>`;
- });
- const firmado = state.firmas.jefe && state.firmas.gerente;
- html += `<div class="sec-title">Firmas</div><div class="card"><label style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><input type="checkbox" id="firma1" ${state.firmas.jefe?'checked':''}> Firma del jefe de almacén</label>
-  <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="firma2" ${state.firmas.gerente?'checked':''}> Firma del gerente</label></div>`;
- html += `<div id="resultBox">${state.ultimoResultado}</div><div class="stickybar"><span class="progtxt" style="margin-right:auto;align-self:center">${contestadas} de ${QUESTIONS.length} contestadas${contestadas>0&&!firmado?' · faltan firmas':''}</span><button class="btn" id="btnCalificar" ${contestadas===0||!firmado?'disabled':''}>Calificar y generar tareas</button></div>`;
- document.getElementById('app').innerHTML = html;
-
- document.querySelectorAll('.toggle button').forEach(b=>b.addEventListener('click', e=>{
-  const qid = e.target.parentElement.dataset.q;
-  state.respuestas[qid] = e.target.dataset.v;
-  state.ultimoResultado = '';
-  renderAudit();
- }));
- document.getElementById('firma1').addEventListener('change', e=>{ state.firmas.jefe = e.target.checked; renderAudit(); });
- document.getElementById('firma2').addEventListener('change', e=>{ state.firmas.gerente = e.target.checked; renderAudit(); });
- document.querySelectorAll('[data-c]').forEach(t=>t.addEventListener('input', e=>{ state.comentarios[e.target.dataset.c]=e.target.value; }));
- document.querySelectorAll('[data-f]').forEach(b=>b.addEventListener('click', e=>{ const id=e.target.dataset.f; state.fotos[id]=!state.fotos[id]; renderAudit(); }));
- document.getElementById('btnCalificar').addEventListener('click', ()=>{
-  if(!(state.firmas.jefe && state.firmas.gerente)){ toast('Faltan las firmas del jefe de almacén y del gerente'); return; }
-  let creadas = [];
-  QUESTIONS.forEach(q=>{
-   const v = state.respuestas[q.id];
-   if(v && incumple(q,v)){
-    const t = makeTask(q, state.sucursal);
-    t.auditorEvidencia = (state.comentarios[q.id]||'').trim();
-    t.auditorFoto = !!state.fotos[q.id];
-    TASKS.push(t);
-    creadas.push(t);
-    notif(`Tarea creada en ${state.sucursal}: "${q.texto}" → ${AREA_COLAB[q.area]} (correo/push)`);
-   }
-  });
-  state.ultimoResultado = creadas.length
-   ? `<div class="result"><strong>${creadas.length} tarea(s) generada(s)</strong> en ${s.t}. Se notificó por correo/push al responsable de cada una.<ul style="margin:8px 0 0">${creadas.map(t=>`<li>${t.texto} — ${AREA_COLAB[t.area]}</li>`).join('')}</ul></div>`
-   : `<div class="result">Sin incumplimientos detectados en las preguntas contestadas. No se generaron tareas.</div>`;
-  toast(creadas.length ? `Check list calificado — ${creadas.length} tarea(s) generada(s)` : 'Check list calificado');
-  state.respuestas={}; state.comentarios={}; state.fotos={}; state.firmas={jefe:false, gerente:false};
-  renderAudit();
-  window.scrollTo({top:0, behavior:'smooth'});
- });
-}
-
-function renderTasks(){
- const s = sucursalObj(state.sucursal);
- let html = `<h1 class="pt">Tareas</h1><p class="sub">${s.c} · ${s.t}</p>
-  <div class="filters"><label style="font-size:12.5px;color:var(--ink-soft)">Actuar como&nbsp;
-   <select id="rolSel">
-    <option ${state.rolTareas==='Jefe de Almacén'?'selected':''}>Jefe de Almacén</option>
-    <option ${state.rolTareas==='Gerente'?'selected':''}>Gerente</option>
-    <option ${state.rolTareas==='Auditor'?'selected':''}>Auditor</option>
-   </select></label></div>`;
-
- const suc = TASKS.filter(t=>t.sucursal===state.sucursal);
- let list;
- if(state.rolTareas==='Auditor'){
-  list = suc.filter(t=>t.estado==='PorAprobar');
-  html += list.length ? '' : `<div class="empty">No hay tareas por aprobar en esta sucursal.</div>`;
-  list.forEach(t=> html += taskCardAuditor(t));
- } else {
-  list = suc.filter(t=>AREA_COLAB[t.area]===state.rolTareas && (t.estado==='Pendiente'||t.estado==='Vencida'));
-  html += list.length ? '' : `<div class="empty">No hay tareas pendientes para ${state.rolTareas} en esta sucursal.</div>`;
-  list.forEach(t=> html += taskCardColab(t));
- }
- document.getElementById('app').innerHTML = html;
- document.getElementById('rolSel').addEventListener('change', e=>{ state.rolTareas=e.target.value; renderTasks(); });
- document.querySelectorAll('[data-send]').forEach(b=>b.addEventListener('click', e=>{
-  const id=e.target.dataset.send; const t=TASKS.find(x=>x.id===id);
-  const c = document.querySelector(`[data-cin="${id}"]`).value.trim();
-  if(!c){ toast('Agrega un comentario antes de enviar a aprobación'); document.querySelector(`[data-cin="${id}"]`).focus(); return; }
-  t.colabComentario=c; t.colabFoto=document.querySelector(`[data-fin="${id}"]`).classList.contains('on');
-  t.estado='PorAprobar'; t.diasAprobar=3;
-  notif(`"${t.texto}" (${t.sucursal}) enviada a aprobación por ${AREA_COLAB[t.area]} → correo al Auditor`);
-  toast('Tarea enviada a aprobación');
-  renderTasks();
- }));
- document.querySelectorAll('[data-fin]').forEach(b=>b.addEventListener('click', e=>{ e.target.classList.toggle('on'); e.target.textContent = e.target.classList.contains('on')?'📷 Foto adjunta':'📷 Adjuntar foto'; }));
- document.querySelectorAll('[data-ap]').forEach(b=>b.addEventListener('click', e=>{
-  const id=e.target.dataset.ap; const t=TASKS.find(x=>x.id===id); t.estado='Finalizada';
-  notif(`"${t.texto}" (${t.sucursal}) aprobada y finalizada por el auditor`);
-  toast('Tarea aprobada y finalizada');
-  renderTasks();
- }));
- document.querySelectorAll('[data-rj]').forEach(b=>b.addEventListener('click', e=>{
-  const id=e.target.dataset.rj; const t=TASKS.find(x=>x.id===id);
-  const c = document.querySelector(`[data-rjc="${id}"]`).value.trim();
-  if(!c){ toast('Indica el motivo del rechazo'); document.querySelector(`[data-rjc="${id}"]`).focus(); return; }
-  t.auditorComentario=c; t.estado='Pendiente'; t.diasResolver=5;
-  notif(`"${t.texto}" (${t.sucursal}) rechazada por el auditor, vuelve a ${AREA_COLAB[t.area]}`);
-  toast('Tarea rechazada, regresa al colaborador');
-  renderTasks();
- }));
-}
-function badge(t){
- return t.estado==='Pendiente'?'<span class="badge b-pend">Pendiente</span>'
-  :t.estado==='Vencida'?'<span class="badge b-venc">Vencida</span>'
-  :t.estado==='PorAprobar'?'<span class="badge b-rev">Por aprobar</span>'
-  :'<span class="badge b-done">Finalizada</span>';
-}
-function taskCardColab(t){
- return `<div class="taskcard"><div class="taskhead"><h4>${t.texto}</h4>${badge(t)}</div>
-  <div class="meta">${t.sucursal} · ${AREA_COLAB[t.area]} · vence en ${t.diasResolver} día(s)</div>
-  <div class="evid"><strong>Instrucción:</strong> ${t.instruccion}</div>
-  ${t.auditorEvidencia||t.auditorFoto?`<div class="evid"><strong>Hallazgo del auditor:</strong> ${esc(t.auditorEvidencia)||'—'}${t.auditorFoto?' · 📷 foto adjunta':''}</div>`:''}
-  ${t.auditorComentario?`<div class="evid" style="border-color:var(--venc);background:var(--vencbg)"><strong>Rechazada por el auditor:</strong> ${esc(t.auditorComentario)}</div>`:''}
-  <textarea rows="2" placeholder="Comentario al resolver" data-cin="${t.id}" style="width:100%;border:1px solid var(--line);border-radius:3px;padding:7px 9px;background:var(--paper);color:var(--ink)"></textarea>
-  <div class="row2"><button class="foto-btn" data-fin="${t.id}">📷 Adjuntar foto</button><button class="btn" data-send="${t.id}">Enviar a aprobación</button></div>
- </div>`;
-}
-function taskCardAuditor(t){
- return `<div class="taskcard"><div class="taskhead"><h4>${t.texto}</h4>${badge(t)}</div>
-  <div class="meta">${t.sucursal} · ${AREA_COLAB[t.area]} · aprobar en ${t.diasAprobar} día(s)</div>
-  ${t.auditorEvidencia||t.auditorFoto?`<div class="evid"><strong>Hallazgo original:</strong> ${esc(t.auditorEvidencia)||'—'}${t.auditorFoto?' · 📷 foto adjunta':''}</div>`:''}
-  <div class="evid"><strong>Evidencia del colaborador:</strong> ${esc(t.colabComentario)||'—'} ${t.colabFoto?' · 📷 foto adjunta':''}</div>
-  <textarea rows="2" placeholder="Comentario (obligatorio si rechazas)" data-rjc="${t.id}" style="width:100%;border:1px solid var(--line);border-radius:3px;padding:7px 9px;background:var(--paper);color:var(--ink)"></textarea>
-  <div class="row2"><button class="btn" data-ap="${t.id}">Aprobar</button><button class="btn ghost" data-rj="${t.id}">Rechazar</button></div>
- </div>`;
-}
-
-function renderDash(){
- const suc = TASKS;
- const c = e=>suc.filter(t=>t.estado===e).length;
- let html = `<h1 class="pt">Reportes</h1><p class="sub">Todas las sucursales · datos de demostración</p>
-  <div class="stat-grid">
-   <div class="stat pend"><div class="n">${c('Pendiente')}</div><div class="l">Pendientes</div></div>
-   <div class="stat venc"><div class="n">${c('Vencida')}</div><div class="l">Vencidas</div></div>
-   <div class="stat rev"><div class="n">${c('PorAprobar')}</div><div class="l">Por aprobar</div></div>
-   <div class="stat done"><div class="n">${c('Finalizada')}</div><div class="l">Finalizadas</div></div>
-  </div>`;
- const bySuc = {};
- suc.filter(t=>t.estado==='Pendiente'||t.estado==='Vencida').forEach(t=>{ bySuc[t.sucursal]=(bySuc[t.sucursal]||0)+1; });
- const top = Object.entries(bySuc).sort((a,b)=>b[1]-a[1]).slice(0,6);
- const max = top.length? top[0][1] : 1;
- html += `<div class="sec-title">Sucursales con más tareas abiertas</div><div class="bars">`;
- html += top.length ? top.map(([sc,n])=>{ const s=sucursalObj(sc); return `<div class="bar-row"><span>${sc} ${s?('· '+s.t.slice(0,14)):''}</span><div class="bar-track"><div class="bar-fill" style="width:${n/max*100}%"></div></div><span>${n}</span></div>`; }).join('') : '<div class="empty">Sin tareas abiertas.</div>';
- html += `</div>`;
- html += `<div class="sec-title">Detalle</div><table><tr><th>Sucursal</th><th>Pregunta</th><th>Área</th><th>Estado</th></tr>`;
- html += suc.slice(0,30).map(t=>`<tr><td>${t.sucursal}</td><td>${t.texto}</td><td>${AREA_COLAB[t.area]}</td><td>${badge(t)}</td></tr>`).join('');
- html += `</table>`;
- html += `<div class="row2" style="margin:18px 0"><button class="btn ghost" id="btnDia">Avanzar 1 día (simular plazos)</button></div>`;
- html += `<div class="sec-title">Notificaciones (correo/push simulado)</div><div class="notiffeed" id="feed">${NOTIFS.length?NOTIFS.map(n=>`<div>${n.t} — ${n.msg}</div>`).join(''):'<div>Sin notificaciones aún.</div>'}</div>`;
- document.getElementById('app').innerHTML = html;
- document.getElementById('btnDia').addEventListener('click', ()=>{
-  TASKS.forEach(t=>{
-   if(t.estado==='Pendiente'){ t.diasResolver--; if(t.diasResolver<=0){ t.estado='Vencida'; t.diasResolver=0;
-    const r = sucursalObj(t.sucursal).r;
-    notif(`VENCIDA "${t.texto}" (${t.sucursal}): correo a ${AREA_COLAB[t.area]}, Auditor, Gerente y ${RAZONES[r]}`); } }
-   else if(t.estado==='Vencida'){ /* sigue vencida, ya notificada */ }
-   else if(t.estado==='PorAprobar'){ t.diasAprobar--; if(t.diasAprobar<=0){ notif(`Recordatorio: "${t.texto}" (${t.sucursal}) sigue por aprobar, correo al Auditor`); t.diasAprobar=0; } }
-  });
-  renderDash();
- });
-}
-
-function render(){
- if(state.view==='audit') renderAudit();
- else if(state.view==='tasks') renderTasks();
- else renderDash();
-}
-render();
-</script>
-
-<script>
-/* ============ LOGIN CON SUPABASE ============
-   Pega aquí los datos de TU proyecto NUEVO de Supabase
-   (Dashboard → Project Settings → API). Usa la clave "anon"/"publishable", nunca la service_role. */
+/* ===================== CONFIG SUPABASE ===================== */
 const SUPABASE_URL = 'https://prqgywyhszivaqkppalx.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_YG2hI2w5D7JiXAmfdIQSUQ_FwSnUdXH';
-
-const configurado = !SUPABASE_URL.includes('TU-PROYECTO') && !SUPABASE_ANON_KEY.includes('TU-ANON');
-const sb = configurado ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
-
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const $ = id => document.getElementById(id);
-let modo = 'login'; // login | signup | reset | newpass
 
+/* ===================== AUTENTICACIÓN ===================== */
+let modo = 'login'; // login | signup | reset | newpass
 const TEXTOS = {
  login:  {t:'Iniciar sesión', b:'Entrar', l:'Crear cuenta'},
  signup: {t:'Crear cuenta', b:'Registrarme', l:'Ya tengo cuenta'},
@@ -477,21 +188,11 @@ function traducir(e){
  return m;
 }
 
-function mostrarApp(session){
- const logged = !!session && modo!=='newpass';
- document.body.classList.toggle('locked', !logged);
- if(logged){
-  const u = session.user;
-  $('userEmail').textContent = (u.user_metadata && u.user_metadata.nombre) || u.email;
- }
-}
-
 $('lnkModo').addEventListener('click', ()=> setModo(modo==='login' ? 'signup' : 'login'));
 $('lnkReset').addEventListener('click', ()=> setModo('reset'));
 
 $('authForm').addEventListener('submit', async e=>{
  e.preventDefault();
- if(!sb){ msg('Supabase no está configurado.'); return; }
  const email = $('aEmail').value.trim(), pass = $('aPass').value, nombre = $('aNombre').value.trim();
  if(modo!=='newpass' && !email){ msg('Escribe tu correo.'); return; }
  if(modo!=='reset' && pass.length<6){ msg('La contraseña debe tener al menos 6 caracteres.'); return; }
@@ -518,19 +219,497 @@ $('authForm').addEventListener('submit', async e=>{
  finally{ btn.disabled = false; if(btn.textContent==='Procesando…') btn.textContent = txt; }
 });
 
-$('btnLogout').addEventListener('click', async ()=>{ if(sb) await sb.auth.signOut(); });
+$('btnLogout').addEventListener('click', async ()=>{ await sb.auth.signOut(); });
 
-if(!sb){
- $('authCfg').style.display = '';
- $('authBtn').disabled = true;
-} else {
- sb.auth.onAuthStateChange((event, session)=>{
-  if(event==='PASSWORD_RECOVERY'){ setModo('newpass'); document.body.classList.add('locked'); return; }
-  if(event==='SIGNED_IN' && modo!=='newpass') toast('Bienvenido');
-  if(event==='SIGNED_OUT'){ setModo('login'); $('aPass').value=''; }
-  mostrarApp(session);
+let sesionActual = null;
+function mostrarApp(session){
+ const logged = !!session && modo!=='newpass';
+ document.body.classList.toggle('locked', !logged);
+ if(logged && (!sesionActual || sesionActual.user.id!==session.user.id)){
+  sesionActual = session;
+  boot(session);
+ } else if(!logged){
+  sesionActual = null;
+ }
+}
+
+sb.auth.onAuthStateChange((event, session)=>{
+ if(event==='PASSWORD_RECOVERY'){ setModo('newpass'); document.body.classList.add('locked'); return; }
+ if(event==='SIGNED_IN' && modo!=='newpass') toast('Bienvenido');
+ if(event==='SIGNED_OUT'){ setModo('login'); $('aPass').value=''; sesionActual=null; }
+ mostrarApp(session);
+});
+sb.auth.getSession().then(({data})=> mostrarApp(data.session));
+
+/* ===================== ESTADO Y DATOS ===================== */
+let PERFIL = null;        // fila de public.usuarios del usuario logueado
+let SECCIONES = [];
+let PUNTOS = [];           // preguntas normalizadas {id,sec,texto,tipo,area,instruccion,revisorRol,plazoResolver,plazoAprobar}
+let SUCURSALES = [];       // {c,t,r}
+let RAZONES = {};          // {clave: etiqueta}
+let TASKS = [];
+let NOTIFS = [];
+let pendingTaskFile = {};  // {tareaId: File}
+let realtimeCh = null;
+
+const ROLES_BLOQUEADOS_SUCURSAL = ['Jefe de Almacen Operativo','Jefe de Almacen Administrativo','Gerente'];
+const MAPA_PUESTO = {
+ 'Almacén':'Jefe de Almacen Operativo', 'Jefe de Almacén':'Jefe de Almacen Operativo',
+ 'Jefe de Almacen Operativo':'Jefe de Almacen Operativo', 'Jefe de Almacen Administrativo':'Jefe de Almacen Administrativo',
+ 'Gerente de Tienda':'Gerente', 'Gerente':'Gerente', 'Auditor':'Auditor'
+};
+
+function notif(msgTxt){ NOTIFS.unshift({t:new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}), msg:msgTxt}); if(NOTIFS.length>60) NOTIFS.pop(); }
+function toast(msgTxt){
+ const box = document.getElementById('toasts');
+ const el = document.createElement('div'); el.className='toast'; el.textContent=msgTxt;
+ box.appendChild(el); setTimeout(()=>el.remove(), 3000);
+}
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function addDias(n){ const d=new Date(); d.setDate(d.getDate()+(n||0)); return d.toISOString(); }
+function diasRestantes(fecha){ if(!fecha) return null; return Math.ceil((new Date(fecha)-new Date())/86400000); }
+async function registrarHistorial(auditoriaId, accion){
+ NOTIFS.unshift({t:new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}), msg:accion});
+ try{ await sb.from('historial').insert({auditoria_id:auditoriaId||null, usuario_nombre:PERFIL?.nombre||'—', accion}); }catch(e){ /* no bloquea la UI */ }
+}
+
+/* ---------- arranque tras iniciar sesión ---------- */
+async function boot(session){
+ document.getElementById('app').innerHTML = '<p class="empty">Cargando tu perfil y el checklist…</p>';
+ try{
+  let {data:perfil, error} = await sb.from('usuarios').select('*').eq('auth_user_id', session.user.id).maybeSingle();
+  if(error) throw error;
+  if(!perfil){
+   document.getElementById('app').innerHTML = '<div class="result">Tu cuenta no tiene todavía un perfil en el sistema. Pide a un administrador que te asigne rol y sucursal, o intenta cerrar sesión y volver a entrar en unos segundos.</div>';
+   return;
+  }
+  PERFIL = perfil;
+  $('userEmail').textContent = `${perfil.nombre} · ${perfil.rol}`;
+ }catch(err){
+  document.getElementById('app').innerHTML = `<div class="result">No se pudo cargar tu perfil: ${esc(err.message||err)}</div>`;
+  return;
+ }
+
+ const okCatalogos = await cargarCatalogos();
+ if(!okCatalogos){
+  document.getElementById('app').innerHTML = '<div class="result">No hay conexión y no hay datos guardados localmente todavía. Conéctate a internet al menos una vez para cargar el checklist.</div>';
+  return;
+ }
+ poblarSucursales();
+
+ // Oculta "Reportes" para roles de tienda (solo Administrador/Supervisor/Auditor lo ven)
+ const esGerencial = ['Administrador','Supervisor'].includes(PERFIL.rol) || PERFIL.puesto==='Auditor';
+ document.querySelector('nav button[data-v="dash"]').style.display = esGerencial ? '' : 'none';
+
+ state.rolTareas = PERFIL.puesto==='Auditor' ? 'Auditor' : (MAPA_PUESTO[PERFIL.puesto] && ['Jefe de Almacen Operativo','Jefe de Almacen Administrativo'].includes(PERFIL.puesto) ? 'Jefe de Almacén' : (PERFIL.puesto || 'Jefe de Almacén'));
+
+ await cargarTareas();
+ await cargarHistorial();
+ suscribirHistorialRealtime();
+ render();
+}
+
+async function cargarCatalogos(){
+ try{
+  const [{data:secc,error:e1},{data:pts,error:e2},{data:suc,error:e3},{data:raz,error:e4}] = await Promise.all([
+   sb.from('secciones').select('*').order('orden'),
+   sb.from('puntos').select('*, secciones(nombre,orden)').order('orden'),
+   sb.from('sucursales').select('*').eq('activa', true).order('centro'),
+   sb.from('razones_sociales').select('*')
+  ]);
+  if(e1||e2||e3||e4) throw (e1||e2||e3||e4);
+  SECCIONES = secc||[];
+  PUNTOS = (pts||[]).map(p=>({
+   id:p.id, sec:(p.secciones && p.secciones.nombre) || 'General', secOrden:(p.secciones && p.secciones.orden)||0, orden:p.orden||0,
+   texto:p.pregunta, tipo: p.logica_negativa ? 'Negativo':'Positivo',
+   area: p.responsable_rol || 'Sin asignar', revisorRol: p.revisor_rol || 'Auditor',
+   instruccion: p.instruccion || p.nombre_tarea || '', generaTarea: p.genera_tarea!==false,
+   plazoResolver: p.plazo_resolver_dias ?? 5, plazoAprobar: p.plazo_aprobar_dias ?? 3
+  })).sort((a,b)=> a.secOrden-b.secOrden || a.orden-b.orden);
+  SUCURSALES = (suc||[]).map(s=>({c:s.centro, t:s.tienda, r:s.razon_social_clave}));
+  RAZONES = {}; (raz||[]).forEach(r=>{ RAZONES[r.clave] = r.nombre + (r.supervisor_nombre?(' — '+r.supervisor_nombre):''); });
+  localStorage.setItem('cl_cache_v1', JSON.stringify({PUNTOS,SUCURSALES,RAZONES}));
+  return true;
+ }catch(err){
+  const cache = localStorage.getItem('cl_cache_v1');
+  if(cache){
+   try{ const c = JSON.parse(cache); PUNTOS=c.PUNTOS; SUCURSALES=c.SUCURSALES; RAZONES=c.RAZONES; toast('Sin conexión: usando el checklist guardado localmente'); return true; }catch(e2){}
+  }
+  return false;
+ }
+}
+
+function poblarSucursales(){
+ const selSuc = document.getElementById('selSucursal');
+ selSuc.innerHTML = '';
+ const porRazon = {};
+ SUCURSALES.forEach(s=>{ (porRazon[s.r] = porRazon[s.r]||[]).push(s); });
+ Object.keys(porRazon).forEach(r=>{
+  const og = document.createElement('optgroup'); og.label = RAZONES[r] || r;
+  porRazon[r].forEach(s=>{ const o=document.createElement('option'); o.value=s.c; o.textContent=s.c+' — '+s.t; og.appendChild(o); });
+  selSuc.appendChild(og);
  });
- sb.auth.getSession().then(({data})=> mostrarApp(data.session));
+ const bloqueada = PERFIL.sucursal_centro && ROLES_BLOQUEADOS_SUCURSAL.includes(PERFIL.puesto);
+ if(bloqueada && SUCURSALES.some(s=>s.c===PERFIL.sucursal_centro)){
+  state.sucursal = PERFIL.sucursal_centro; selSuc.value = state.sucursal; selSuc.disabled = true;
+ } else {
+  state.sucursal = (SUCURSALES.some(s=>s.c===state.sucursal) && state.sucursal) || (SUCURSALES[0] && SUCURSALES[0].c);
+  selSuc.value = state.sucursal; selSuc.disabled = false;
+ }
+ selSuc.onchange = e=>{ state.sucursal = e.target.value; render(); };
+}
+
+async function cargarTareas(){
+ try{
+  const {data, error} = await sb.from('tareas')
+   .select('*, respuestas(punto_id, auditoria_id, auditorias(sucursal_centro, tienda)), responsable:usuarios!tareas_responsable_id_fkey(id,nombre), revisor:usuarios!tareas_revisor_id_fkey(id,nombre)')
+   .order('fecha_creacion', {ascending:false}).limit(400);
+  if(error) throw error;
+  TASKS = (data||[]).map(t=>{
+   const punto = PUNTOS.find(p=>p.id===t.respuestas?.punto_id);
+   let estado = {abierta:'Pendiente', ejecutada:'PorAprobar', aprobada:'Finalizada', rechazada:'Pendiente'}[t.estado] || t.estado;
+   if(estado==='Pendiente' && t.fecha_limite_resolver && diasRestantes(t.fecha_limite_resolver)<=0) estado='Vencida';
+   return {
+    id:t.id, texto: punto?.texto || '(pregunta no disponible)', area: punto?.area || 'Sin asignar', instruccion: punto?.instruccion || '',
+    sucursal: t.respuestas?.auditorias?.sucursal_centro || '—', estado,
+    responsable_id: t.responsable_id, revisor_id: t.revisor_id,
+    responsableNombre: t.responsable?.nombre || null, revisorNombre: t.revisor?.nombre || null,
+    diasResolver: diasRestantes(t.fecha_limite_resolver), diasAprobar: diasRestantes(t.fecha_limite_aprobar),
+    colabComentario: t.comentario_ejecucion || '', auditorComentario: t.motivo_rechazo || ''
+   };
+  });
+ }catch(err){ toast('No se pudieron cargar las tareas: '+(err.message||err)); TASKS = []; }
+}
+
+async function cargarHistorial(){
+ try{
+  const {data, error} = await sb.from('historial').select('*').order('fecha', {ascending:false}).limit(40);
+  if(error) throw error;
+  NOTIFS = (data||[]).map(h=>({t:new Date(h.fecha).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}), msg:h.accion}));
+ }catch(err){ /* deja NOTIFS vacío si falla */ }
+}
+
+function suscribirHistorialRealtime(){
+ if(realtimeCh) return;
+ realtimeCh = sb.channel('historial-feed')
+  .on('postgres_changes', {event:'INSERT', schema:'public', table:'historial'}, payload=>{
+   NOTIFS.unshift({t:new Date(payload.new.fecha||Date.now()).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}), msg:payload.new.accion});
+   if(state.view==='dash') renderDash();
+  }).subscribe();
+}
+
+async function buscarUsuario(rolTexto, sucursalCentro){
+ if(!rolTexto) return null;
+ const puesto = MAPA_PUESTO[rolTexto] || rolTexto;
+ try{
+  let q = sb.from('usuarios').select('id,nombre').eq('activo', true).eq('puesto', puesto);
+  if(sucursalCentro) q = q.eq('sucursal_centro', sucursalCentro);
+  let {data} = await q.limit(1);
+  if((!data || !data.length) && sucursalCentro){
+   ({data} = await sb.from('usuarios').select('id,nombre').eq('activo', true).eq('puesto', puesto).limit(1));
+  }
+  return (data && data[0]) || null;
+ }catch(e){ return null; }
+}
+
+async function subirEvidencia(file, carpeta){
+ const path = `${carpeta}/${Date.now()}_${file.name}`.replace(/\s+/g,'_');
+ const {error} = await sb.storage.from('evidencias').upload(path, file, {upsert:false});
+ if(error) throw error;
+ const {data} = await sb.storage.from('evidencias').createSignedUrl(path, 60*60*24*365);
+ return (data && data.signedUrl) || path;
+}
+
+/* ===================== FIRMAS (canvas) ===================== */
+function initFirma(canvasId, stateKey){
+ const canvas = $(canvasId); if(!canvas) return;
+ const ctx = canvas.getContext('2d');
+ ctx.lineWidth = 2; ctx.lineCap = 'round';
+ ctx.strokeStyle = getComputedStyle(document.body).getPropertyValue('--ink') || '#1B2430';
+ if(state[stateKey]){ const img = new Image(); img.onload=()=>ctx.drawImage(img,0,0); img.src = state[stateKey]; }
+ let drawing = false;
+ function pos(e){ const r = canvas.getBoundingClientRect(); const p = e.touches ? e.touches[0] : e; return {x:p.clientX-r.left, y:p.clientY-r.top}; }
+ function start(e){ drawing = true; const p = pos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); e.preventDefault(); }
+ function move(e){ if(!drawing) return; const p = pos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); state[stateKey] = canvas.toDataURL('image/png'); e.preventDefault(); }
+ function end(){ drawing = false; }
+ canvas.onmousedown = start; canvas.onmousemove = move; window.addEventListener('mouseup', end);
+ canvas.ontouchstart = start; canvas.ontouchmove = move; canvas.ontouchend = end;
+}
+function limpiarFirma(canvasId, stateKey){ const c = $(canvasId); c.getContext('2d').clearRect(0,0,c.width,c.height); state[stateKey] = null; }
+
+/* ===================== ESTADO DE LA VISTA ===================== */
+let state = { sucursal:null, view:'audit', rolTareas:'Jefe de Almacén', respuestas:{}, comentarios:{}, fotos:{}, fotoFiles:{}, firmaJefe:null, firmaGerente:null, ultimoResultado:'' };
+
+document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click', ()=>{
+ state.view = b.dataset.v;
+ document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on', x===b));
+ render();
+}));
+
+function sucursalObj(c){ return SUCURSALES.find(s=>s.c===c); }
+function incumple(q, valor){ return q.tipo==='Negativo' ? valor==='Si' : valor==='No'; }
+
+/* ===================== VISTA: AUDITORÍA ===================== */
+function renderAudit(){
+ const s = sucursalObj(state.sucursal);
+ const preguntas = PUNTOS;
+ const contestadas = Object.keys(state.respuestas).length;
+ let html = `<h1 class="pt">Calificar check list — Orden y Limpieza</h1><p class="sub">${s?s.c+' · '+s.t:'Selecciona una sucursal'} · folio se genera al calificar</p>
+  <div class="progwrap"><div class="progtrack"><div class="progfill" style="width:${preguntas.length?contestadas/preguntas.length*100:0}%"></div></div><span class="progtxt">${contestadas}/${preguntas.length} contestadas</span></div>`;
+ let lastSec = '';
+ preguntas.forEach(q=>{
+  if(q.sec!==lastSec){ html += `<div class="sec-title">${esc(q.sec)}</div>`; lastSec = q.sec; }
+  const v = state.respuestas[q.id];
+  const foto = state.fotos[q.id];
+  html += `<div class="card">
+   <div class="qrow">
+    <div class="qtxt">${esc(q.texto)}</div>
+    <div class="toggle" data-q="${q.id}">
+     <button data-v="Si" class="${v==='Si'?'sel-si':''}">Sí</button>
+     <button data-v="No" class="${v==='No'?'sel-no':''}">No</button>
+    </div>
+   </div>
+   <div class="qmore">
+    <textarea placeholder="Comentario (opcional)" data-c="${q.id}" rows="1">${esc(state.comentarios[q.id])}</textarea>
+    <button type="button" class="foto-btn ${foto?'on':''}" data-f="${q.id}">${foto?'📷 Foto adjunta':'📷 Adjuntar foto'}</button>
+    <input type="file" accept="image/*" capture="environment" style="display:none" data-finput="${q.id}">
+   </div>
+  </div>`;
+ });
+ html += `<div class="sec-title">Firmas</div><div class="card">
+  <div style="margin-bottom:16px">
+   <label style="font-size:12.5px;color:var(--ink-soft);display:block;margin-bottom:4px">Firma del jefe de almacén</label>
+   <canvas id="firmaJefe" width="300" height="90" style="border:1px solid var(--line);border-radius:3px;background:var(--paper);touch-action:none;display:block;max-width:100%"></canvas>
+   <button type="button" class="linkbtn" id="limpiarJefe">Limpiar firma</button>
+  </div>
+  <div>
+   <label style="font-size:12.5px;color:var(--ink-soft);display:block;margin-bottom:4px">Firma del gerente</label>
+   <canvas id="firmaGerente" width="300" height="90" style="border:1px solid var(--line);border-radius:3px;background:var(--paper);touch-action:none;display:block;max-width:100%"></canvas>
+   <button type="button" class="linkbtn" id="limpiarGerente">Limpiar firma</button>
+  </div>
+ </div>`;
+ const firmado = !!state.firmaJefe && !!state.firmaGerente;
+ html += `<div id="resultBox">${state.ultimoResultado}</div><div class="stickybar"><span class="progtxt" style="margin-right:auto;align-self:center">${contestadas} de ${preguntas.length} contestadas${contestadas>0&&!firmado?' · faltan firmas':''}</span><button class="btn" id="btnCalificar" ${contestadas===0||!firmado?'disabled':''}>Calificar y generar tareas</button></div>`;
+ document.getElementById('app').innerHTML = html;
+
+ document.querySelectorAll('.toggle button').forEach(b=>b.addEventListener('click', e=>{
+  const qid = e.target.parentElement.dataset.q;
+  state.respuestas[qid] = e.target.dataset.v;
+  state.ultimoResultado = '';
+  renderAudit();
+ }));
+ document.querySelectorAll('[data-c]').forEach(t=>t.addEventListener('input', e=>{ state.comentarios[e.target.dataset.c]=e.target.value; }));
+ document.querySelectorAll('[data-f]').forEach(b=>b.addEventListener('click', e=>{
+  document.querySelector(`[data-finput="${e.currentTarget.dataset.f}"]`).click();
+ }));
+ document.querySelectorAll('[data-finput]').forEach(inp=>inp.addEventListener('change', e=>{
+  const id = e.target.dataset.finput; const f = e.target.files[0];
+  if(f){ state.fotoFiles[id]=f; state.fotos[id]=true; renderAudit(); }
+ }));
+ initFirma('firmaJefe','firmaJefe'); initFirma('firmaGerente','firmaGerente');
+ $('limpiarJefe').addEventListener('click', ()=>limpiarFirma('firmaJefe','firmaJefe'));
+ $('limpiarGerente').addEventListener('click', ()=>limpiarFirma('firmaGerente','firmaGerente'));
+ const btnCal = document.getElementById('btnCalificar');
+ if(btnCal) btnCal.addEventListener('click', calificar);
+}
+
+async function calificar(){
+ if(!(state.firmaJefe && state.firmaGerente)){ toast('Faltan las firmas del jefe de almacén y del gerente'); return; }
+ const s = sucursalObj(state.sucursal);
+ const btn = document.getElementById('btnCalificar'); btn.disabled = true; btn.textContent = 'Guardando…';
+ try{
+  const respondidas = Object.entries(state.respuestas);
+  const incumplidas = respondidas.filter(([qid,v])=>{ const q = PUNTOS.find(x=>x.id===qid); return q && incumple(q,v); }).length;
+  const pct = respondidas.length ? Math.round((1 - incumplidas/respondidas.length)*100) : 100;
+
+  const {data:auditoria, error:e1} = await sb.from('auditorias').insert({
+   tienda: s.t, auditor_id: PERFIL.id, auditor_nombre: PERFIL.nombre, sucursal_centro: s.c,
+   porcentaje_cumplimiento: pct, estado:'cerrada'
+  }).select().single();
+  if(e1) throw e1;
+
+  await sb.from('firmas').insert([
+   {auditoria_id:auditoria.id, rol_firmante:'Jefe de almacén', nombre:PERFIL.nombre, imagen_firma:state.firmaJefe},
+   {auditoria_id:auditoria.id, rol_firmante:'Gerente', nombre:PERFIL.nombre, imagen_firma:state.firmaGerente}
+  ]);
+
+  let creadas = [];
+  for(const [qid, valor] of respondidas){
+   const q = PUNTOS.find(x=>x.id===qid); if(!q) continue;
+   const {data:resp, error:e2} = await sb.from('respuestas').insert({
+    auditoria_id:auditoria.id, punto_id:qid, valor: valor==='Si'?'si':'no',
+    es_no_conforme: incumple(q,valor), comentario:(state.comentarios[qid]||'').trim()
+   }).select().single();
+   if(e2) throw e2;
+
+   if(incumple(q,valor) && q.generaTarea){
+    const responsable = await buscarUsuario(q.area, s.c);
+    const revisor = await buscarUsuario(q.revisorRol, null);
+    const {data:tarea, error:e3} = await sb.from('tareas').insert({
+     respuesta_id: resp.id, responsable_id: responsable?.id || null, revisor_id: revisor?.id || null,
+     estado:'abierta', fecha_limite_resolver: addDias(q.plazoResolver)
+    }).select().single();
+    if(e3) throw e3;
+
+    if(state.fotoFiles[qid]){
+     try{ const url = await subirEvidencia(state.fotoFiles[qid], auditoria.id); await sb.from('evidencias').insert({tarea_id:tarea.id, url_archivo:url, subido_por:PERFIL.id}); }
+     catch(errFoto){ toast('La tarea se creó, pero la foto no se pudo subir'); }
+    }
+    const destino = responsable ? responsable.nombre : `sin asignar (${q.area})`;
+    await registrarHistorial(auditoria.id, `Tarea creada en ${s.c}: "${q.texto}" → ${destino}`);
+    creadas.push({texto:q.texto, area:q.area, responsable});
+   }
+  }
+
+  state.ultimoResultado = creadas.length
+   ? `<div class="result"><strong>${creadas.length} tarea(s) generada(s)</strong> en ${esc(s.t)} y guardadas en Supabase.<ul style="margin:8px 0 0">${creadas.map(t=>`<li>${esc(t.texto)} — ${t.responsable? esc(t.responsable.nombre) : 'sin responsable asignado ('+esc(t.area)+')'}</li>`).join('')}</ul></div>`
+   : `<div class="result">Sin incumplimientos detectados en las preguntas contestadas. No se generaron tareas.</div>`;
+  toast(creadas.length ? `Check list calificado — ${creadas.length} tarea(s) generada(s)` : 'Check list calificado');
+  state.respuestas={}; state.comentarios={}; state.fotos={}; state.fotoFiles={}; state.firmaJefe=null; state.firmaGerente=null;
+  await cargarTareas();
+  renderAudit();
+  window.scrollTo({top:0, behavior:'smooth'});
+ }catch(err){
+  toast('No se pudo guardar la auditoría: '+(err.message||err));
+  btn.disabled = false; btn.textContent = 'Calificar y generar tareas';
+ }
+}
+
+/* ===================== VISTA: TAREAS ===================== */
+function renderTasks(){
+ const s = sucursalObj(state.sucursal);
+ const esAdmin = PERFIL.rol==='Administrador' || PERFIL.rol==='Supervisor';
+ let html = `<h1 class="pt">Tareas</h1><p class="sub">${s?s.c+' · '+s.t:''}</p>`;
+ if(esAdmin){
+  html += `<div class="filters"><label style="font-size:12.5px;color:var(--ink-soft)">Ver como&nbsp;
+   <select id="rolSel">
+    <option ${state.rolTareas==='Jefe de Almacén'?'selected':''}>Jefe de Almacén</option>
+    <option ${state.rolTareas==='Gerente'?'selected':''}>Gerente</option>
+    <option ${state.rolTareas==='Auditor'?'selected':''}>Auditor</option>
+   </select></label></div>`;
+ }
+ const suc = TASKS.filter(t=>t.sucursal===state.sucursal);
+ let list;
+ if(esAdmin){
+  list = state.rolTareas==='Auditor' ? suc.filter(t=>t.estado==='PorAprobar') : suc.filter(t=>t.estado==='Pendiente'||t.estado==='Vencida');
+ } else if(PERFIL.puesto==='Auditor'){
+  list = suc.filter(t=>t.revisor_id===PERFIL.id && t.estado==='PorAprobar');
+ } else {
+  list = suc.filter(t=>t.responsable_id===PERFIL.id && (t.estado==='Pendiente'||t.estado==='Vencida'));
+ }
+ const modoAuditor = esAdmin ? state.rolTareas==='Auditor' : PERFIL.puesto==='Auditor';
+ html += list.length ? '' : `<div class="empty">No hay tareas ${modoAuditor?'por aprobar':'pendientes'} en esta sucursal.</div>`;
+ list.forEach(t=> html += modoAuditor ? taskCardAuditor(t) : taskCardColab(t));
+ document.getElementById('app').innerHTML = html;
+
+ const rolSel = document.getElementById('rolSel');
+ if(rolSel) rolSel.addEventListener('change', e=>{ state.rolTareas = e.target.value; renderTasks(); });
+
+ document.querySelectorAll('[data-f]').forEach(b=>b.addEventListener('click', e=>{
+  document.querySelector(`[data-finput="${e.currentTarget.dataset.f}"]`).click();
+ }));
+ document.querySelectorAll('[data-finput]').forEach(inp=>inp.addEventListener('change', e=>{
+  const id = e.target.dataset.finput; const f = e.target.files[0];
+  if(f){ pendingTaskFile[id]=f; const b=document.querySelector(`[data-f="${id}"]`); b.classList.add('on'); b.textContent='📷 Foto adjunta'; }
+ }));
+ document.querySelectorAll('[data-send]').forEach(b=>b.addEventListener('click', async e=>{
+  const id = e.target.dataset.send;
+  const c = document.querySelector(`[data-cin="${id}"]`).value.trim();
+  if(!c){ toast('Agrega un comentario antes de enviar a aprobación'); document.querySelector(`[data-cin="${id}"]`).focus(); return; }
+  e.target.disabled = true;
+  try{
+   let fotoUrl = null;
+   if(pendingTaskFile[id]) fotoUrl = await subirEvidencia(pendingTaskFile[id], id);
+   const {error} = await sb.from('tareas').update({estado:'ejecutada', comentario_ejecucion:c, fecha_ejecucion:new Date().toISOString(), fecha_limite_aprobar:addDias(3)}).eq('id', id);
+   if(error) throw error;
+   if(fotoUrl) await sb.from('evidencias').insert({tarea_id:id, url_archivo:fotoUrl, subido_por:PERFIL.id});
+   const t = TASKS.find(x=>x.id===id);
+   await registrarHistorial(null, `"${t?.texto||id}" (${t?.sucursal||''}) enviada a aprobación por ${PERFIL.nombre}`);
+   toast('Tarea enviada a aprobación');
+   delete pendingTaskFile[id];
+   await cargarTareas(); renderTasks();
+  }catch(err){ toast('No se pudo enviar la tarea: '+(err.message||err)); e.target.disabled = false; }
+ }));
+ document.querySelectorAll('[data-ap]').forEach(b=>b.addEventListener('click', async e=>{
+  const id = e.target.dataset.ap; e.target.disabled = true;
+  try{
+   const {error} = await sb.from('tareas').update({estado:'aprobada', fecha_decision:new Date().toISOString()}).eq('id', id);
+   if(error) throw error;
+   const t = TASKS.find(x=>x.id===id);
+   await registrarHistorial(null, `"${t?.texto||id}" (${t?.sucursal||''}) aprobada y finalizada por ${PERFIL.nombre}`);
+   toast('Tarea aprobada y finalizada');
+   await cargarTareas(); renderTasks();
+  }catch(err){ toast('No se pudo aprobar: '+(err.message||err)); e.target.disabled = false; }
+ }));
+ document.querySelectorAll('[data-rj]').forEach(b=>b.addEventListener('click', async e=>{
+  const id = e.target.dataset.rj;
+  const c = document.querySelector(`[data-rjc="${id}"]`).value.trim();
+  if(!c){ toast('Indica el motivo del rechazo'); document.querySelector(`[data-rjc="${id}"]`).focus(); return; }
+  e.target.disabled = true;
+  try{
+   const {error} = await sb.from('tareas').update({estado:'rechazada', motivo_rechazo:c, fecha_decision:new Date().toISOString(), fecha_limite_resolver:addDias(5)}).eq('id', id);
+   if(error) throw error;
+   const t = TASKS.find(x=>x.id===id);
+   await registrarHistorial(null, `"${t?.texto||id}" (${t?.sucursal||''}) rechazada por ${PERFIL.nombre}`);
+   toast('Tarea rechazada, regresa al colaborador');
+   await cargarTareas(); renderTasks();
+  }catch(err){ toast('No se pudo rechazar: '+(err.message||err)); e.target.disabled = false; }
+ }));
+}
+function badge(t){
+ return t.estado==='Pendiente'?'<span class="badge b-pend">Pendiente</span>'
+  :t.estado==='Vencida'?'<span class="badge b-venc">Vencida</span>'
+  :t.estado==='PorAprobar'?'<span class="badge b-rev">Por aprobar</span>'
+  :'<span class="badge b-done">Finalizada</span>';
+}
+function taskCardColab(t){
+ return `<div class="taskcard"><div class="taskhead"><h4>${esc(t.texto)}</h4>${badge(t)}</div>
+  <div class="meta">${esc(t.sucursal)} · ${esc(t.area)}${t.diasResolver!=null?' · vence en '+t.diasResolver+' día(s)':''}</div>
+  <div class="evid"><strong>Instrucción:</strong> ${esc(t.instruccion)||'—'}</div>
+  ${t.auditorComentario?`<div class="evid" style="border-color:var(--venc);background:var(--vencbg)"><strong>Rechazada por el auditor:</strong> ${esc(t.auditorComentario)}</div>`:''}
+  <textarea rows="2" placeholder="Comentario al resolver" data-cin="${t.id}" style="width:100%;border:1px solid var(--line);border-radius:3px;padding:7px 9px;background:var(--paper);color:var(--ink)"></textarea>
+  <div class="row2"><button type="button" class="foto-btn" data-f="${t.id}">📷 Adjuntar foto</button><input type="file" accept="image/*" capture="environment" style="display:none" data-finput="${t.id}"><button class="btn" data-send="${t.id}">Enviar a aprobación</button></div>
+ </div>`;
+}
+function taskCardAuditor(t){
+ return `<div class="taskcard"><div class="taskhead"><h4>${esc(t.texto)}</h4>${badge(t)}</div>
+  <div class="meta">${esc(t.sucursal)} · ${esc(t.area)}${t.diasAprobar!=null?' · aprobar en '+t.diasAprobar+' día(s)':''}${t.responsableNombre?' · resolvió: '+esc(t.responsableNombre):''}</div>
+  <div class="evid"><strong>Evidencia del colaborador:</strong> ${esc(t.colabComentario)||'—'}</div>
+  <textarea rows="2" placeholder="Comentario (obligatorio si rechazas)" data-rjc="${t.id}" style="width:100%;border:1px solid var(--line);border-radius:3px;padding:7px 9px;background:var(--paper);color:var(--ink)"></textarea>
+  <div class="row2"><button class="btn" data-ap="${t.id}">Aprobar</button><button class="btn ghost" data-rj="${t.id}">Rechazar</button></div>
+ </div>`;
+}
+
+/* ===================== VISTA: REPORTES ===================== */
+function renderDash(){
+ const suc = TASKS;
+ const c = e=>suc.filter(t=>t.estado===e).length;
+ let html = `<h1 class="pt">Reportes</h1><p class="sub">Todas las sucursales · datos en vivo desde Supabase</p>
+  <div class="stat-grid">
+   <div class="stat pend"><div class="n">${c('Pendiente')}</div><div class="l">Pendientes</div></div>
+   <div class="stat venc"><div class="n">${c('Vencida')}</div><div class="l">Vencidas</div></div>
+   <div class="stat rev"><div class="n">${c('PorAprobar')}</div><div class="l">Por aprobar</div></div>
+   <div class="stat done"><div class="n">${c('Finalizada')}</div><div class="l">Finalizadas</div></div>
+  </div>`;
+ const bySuc = {};
+ suc.filter(t=>t.estado==='Pendiente'||t.estado==='Vencida').forEach(t=>{ bySuc[t.sucursal]=(bySuc[t.sucursal]||0)+1; });
+ const top = Object.entries(bySuc).sort((a,b)=>b[1]-a[1]).slice(0,6);
+ const max = top.length? top[0][1] : 1;
+ html += `<div class="sec-title">Sucursales con más tareas abiertas</div><div class="bars">`;
+ html += top.length ? top.map(([sc,n])=>{ const s=sucursalObj(sc); return `<div class="bar-row"><span>${esc(sc)} ${s?('· '+esc(s.t.slice(0,14))):''}</span><div class="bar-track"><div class="bar-fill" style="width:${n/max*100}%"></div></div><span>${n}</span></div>`; }).join('') : '<div class="empty">Sin tareas abiertas.</div>';
+ html += `</div>`;
+ html += `<div class="sec-title">Detalle</div><table><tr><th>Sucursal</th><th>Pregunta</th><th>Área</th><th>Estado</th></tr>`;
+ html += suc.slice(0,30).map(t=>`<tr><td>${esc(t.sucursal)}</td><td>${esc(t.texto)}</td><td>${esc(t.area)}</td><td>${badge(t)}</td></tr>`).join('');
+ html += `</table>`;
+ html += `<div class="sec-title">Notificaciones (historial real de Supabase)</div><div class="notiffeed" id="feed">${NOTIFS.length?NOTIFS.map(n=>`<div>${esc(n.t)} — ${esc(n.msg)}</div>`).join(''):'<div>Sin notificaciones aún.</div>'}</div>`;
+ document.getElementById('app').innerHTML = html;
+}
+
+function render(){
+ if(!PERFIL) return;
+ if(state.view==='audit') renderAudit();
+ else if(state.view==='tasks') renderTasks();
+ else renderDash();
 }
 </script>
 </body>
