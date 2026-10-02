@@ -398,20 +398,6 @@ function suscribirHistorialRealtime(){
   }).subscribe();
 }
 
-async function buscarUsuario(rolTexto, sucursalCentro){
- if(!rolTexto) return null;
- const puesto = MAPA_PUESTO[rolTexto] || rolTexto;
- try{
-  let q = sb.from('usuarios').select('id,nombre').eq('activo', true).eq('puesto', puesto);
-  if(sucursalCentro) q = q.eq('sucursal_centro', sucursalCentro);
-  let {data} = await q.limit(1);
-  if((!data || !data.length) && sucursalCentro){
-   ({data} = await sb.from('usuarios').select('id,nombre').eq('activo', true).eq('puesto', puesto).limit(1));
-  }
-  return (data && data[0]) || null;
- }catch(e){ return null; }
-}
-
 async function subirEvidencia(file, carpeta){
  const path = `${carpeta}/${Date.now()}_${file.name}`.replace(/\s+/g,'_');
  const {error} = await sb.storage.from('evidencias').upload(path, file, {upsert:false});
@@ -541,21 +527,18 @@ async function calificar(){
    if(e2) throw e2;
 
    if(incumple(q,valor) && q.generaTarea){
-    const responsable = await buscarUsuario(q.area, s.c);
-    const revisor = await buscarUsuario(q.revisorRol, null);
-    const {data:tarea, error:e3} = await sb.from('tareas').insert({
-     respuesta_id: resp.id, responsable_id: responsable?.id || null, revisor_id: revisor?.id || null,
-     estado:'abierta', fecha_limite_resolver: addDias(q.plazoResolver)
-    }).select().single();
-    if(e3) throw e3;
+    // La base de datos ya genera la tarea automáticamente (trigger trg_respuesta_tarea)
+    // al insertar una respuesta no conforme. Aquí solo la consultamos para mostrarla
+    // en pantalla y, si hay foto, adjuntarla.
+    const {data:tareaAuto} = await sb.from('tareas')
+     .select('id, responsable:usuarios!tareas_responsable_id_fkey(nombre)')
+     .eq('respuesta_id', resp.id).maybeSingle();
 
-    if(state.fotoFiles[qid]){
-     try{ const url = await subirEvidencia(state.fotoFiles[qid], auditoria.id); await sb.from('evidencias').insert({tarea_id:tarea.id, url_archivo:url, subido_por:PERFIL.id}); }
+    if(state.fotoFiles[qid] && tareaAuto){
+     try{ const url = await subirEvidencia(state.fotoFiles[qid], auditoria.id); await sb.from('evidencias').insert({tarea_id:tareaAuto.id, url_archivo:url, subido_por:PERFIL.id}); }
      catch(errFoto){ toast('La tarea se creó, pero la foto no se pudo subir'); }
     }
-    const destino = responsable ? responsable.nombre : `sin asignar (${q.area})`;
-    await registrarHistorial(auditoria.id, `Tarea creada en ${s.c}: "${q.texto}" → ${destino}`);
-    creadas.push({texto:q.texto, area:q.area, responsable});
+    creadas.push({texto:q.texto, area:q.area, responsable: tareaAuto?.responsable || null});
    }
   }
 
