@@ -5,159 +5,253 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>CheckList · Auditorías</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
+/* =====================================================================
+   Diseño tipo "panel de administración": barra lateral con degradado,
+   barra superior blanca y contenido en tarjetas sobre fondo gris claro.
+   ===================================================================== */
 :root{
- --ink:#1B2430; --ink-soft:#5B677A; --paper:#F7F6F2; --panel:#FFFFFF; --line:#DEDACD;
- --accent:#8A5A2B; --accent-bg:#F2E4D3;
- --pend:#B4682B; --pendbg:#F7E7D8; --venc:#B23A2E; --vencbg:#F6DAD6;
- --rev:#8A6D1E; --revbg:#F3EACB; --done:#3F6B4A; --donebg:#DEEAE0;
- --serif:'IBM Plex Serif',Georgia,serif; --sans:'IBM Plex Sans',system-ui,sans-serif; --mono:'IBM Plex Mono',monospace;
+ /* Barra lateral (cambiar estos dos colores cambia todo el tema) */
+ --side1:#FF5A5F; --side2:#C9252F;
+ --primary:#447DF7; --primary-d:#2F67E0;
+ --ink:#333333; --ink-soft:#9A9A9A; --ink-mid:#666666;
+ --bg:#F4F4F6; --paper:#F4F4F6; --panel:#FFFFFF; --line:#E3E3E3;
+ --accent:#447DF7; --accent-bg:#EAF1FE;
+ --pend:#F0860A; --pendbg:#FFF3E3; --venc:#E9323D; --vencbg:#FDE8EA;
+ --rev:#14A9CC; --revbg:#E2F7FC; --done:#5FA70E; --donebg:#EDF7E1;
+ --shadow:0 1px 2px rgba(0,0,0,.05),0 0 0 1px rgba(63,63,68,.1);
+ --sans:'Roboto','Helvetica Neue',Arial,sans-serif; --serif:var(--sans); --mono:var(--sans);
+ --side-w:260px;
 }
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
- --ink:#EDEAE2; --ink-soft:#A9B2C0; --paper:#161512; --panel:#201E1A; --line:#39352C; --accent:#D9A870; --accent-bg:#332A1D;
- --pend:#E3A46A; --pendbg:#33261A; --venc:#E28A7D; --vencbg:#3A2420; --rev:#D9C168; --revbg:#312B17; --done:#8FC29E; --donebg:#1D2C22;
+ --ink:#ECECEC; --ink-soft:#9AA0A8; --ink-mid:#C3C7CC; --bg:#16171A; --paper:#1D1F23; --panel:#24262B; --line:#353840;
+ --accent-bg:#1E2A44; --pendbg:#3A2A14; --vencbg:#3D1D21; --revbg:#123540; --donebg:#22341A;
+ --shadow:0 0 0 1px rgba(255,255,255,.06);
 }}
 :root[data-theme="dark"]{
- --ink:#EDEAE2; --ink-soft:#A9B2C0; --paper:#161512; --panel:#201E1A; --line:#39352C; --accent:#D9A870; --accent-bg:#332A1D;
- --pend:#E3A46A; --pendbg:#33261A; --venc:#E28A7D; --vencbg:#3A2420; --rev:#D9C168; --revbg:#312B17; --done:#8FC29E; --donebg:#1D2C22;
+ --ink:#ECECEC; --ink-soft:#9AA0A8; --ink-mid:#C3C7CC; --bg:#16171A; --paper:#1D1F23; --panel:#24262B; --line:#353840;
+ --accent-bg:#1E2A44; --pendbg:#3A2A14; --vencbg:#3D1D21; --revbg:#123540; --donebg:#22341A;
+ --shadow:0 0 0 1px rgba(255,255,255,.06);
 }
 *{box-sizing:border-box}
-html{scroll-padding-top:env(safe-area-inset-top,0px)}
-body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-header{background:var(--paper);padding:14px 18px 4px}
-.htop{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;max-width:1000px;margin:0 auto}
-.brand{font-family:var(--serif);font-weight:700;font-size:17px;margin-right:auto}
-.brand span{color:var(--accent)}
-select,textarea,button,input{font-family:var(--sans);font-size:13.5px}
-select{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:3px;padding:7px 9px}
-/* Solo la barra de pestañas queda fija al hacer scroll: ocupa poco alto en el celular */
-nav{position:sticky;top:0;top:env(safe-area-inset-top,0px);z-index:5;background:var(--paper);border-bottom:1px solid var(--line);padding:0 18px}
-.navin{display:flex;gap:4px;max-width:1000px;margin:0 auto}
-nav button{background:none;border:1px solid transparent;border-bottom:2px solid transparent;color:var(--ink-soft);padding:8px 12px;cursor:pointer;font-weight:500;border-radius:3px 3px 0 0}
-nav button.on{color:var(--ink);border-bottom:2px solid var(--accent)}
-main{max-width:1000px;margin:0 auto;padding:22px 18px 90px}
-h1.pt{font-family:var(--serif);font-size:22px;margin:0 0 4px}
-.sub{color:var(--ink-soft);font-size:13.5px;margin:0 0 20px}
-.sec-title{font-family:var(--mono);font-size:12px;letter-spacing:.02em;color:var(--accent);margin:26px 0 8px;text-transform:uppercase}
-.sec-title:first-child{margin-top:0}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:14px 16px;margin-bottom:10px}
-.qrow{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
-.qtxt{font-size:14.5px;max-width:56ch}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;-webkit-font-smoothing:antialiased}
+select,textarea,button,input{font-family:var(--sans);font-size:14px}
+select{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:8px 10px}
+svg.i{width:20px;height:20px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+/* ---------- Barra lateral ---------- */
+.sidebar{position:fixed;inset:0 auto 0 0;width:var(--side-w);z-index:30;color:#fff;display:flex;flex-direction:column;
+ background:radial-gradient(120% 60% at 0% 100%,rgba(0,0,0,.18),transparent 60%),radial-gradient(90% 50% at 100% 0%,rgba(255,255,255,.12),transparent 60%),linear-gradient(180deg,var(--side1),var(--side2));
+ box-shadow:2px 0 12px rgba(0,0,0,.12);overflow-y:auto;padding-top:env(safe-area-inset-top,0px)}
+.logo{display:flex;align-items:center;gap:10px;padding:18px 22px;border-bottom:1px solid rgba(255,255,255,.2);text-transform:uppercase;font-weight:400;font-size:15px;letter-spacing:.02em}
+.logo .mark{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.95);color:var(--side2);display:grid;place-items:center;font-weight:700;font-size:13px;flex-shrink:0}
+.logo b{font-weight:700}
+.user{padding:16px 22px;border-bottom:1px solid rgba(255,255,255,.2);display:flex;align-items:center;gap:12px}
+.avatar{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.22);border:2px solid rgba(255,255,255,.55);display:grid;place-items:center;font-weight:500;font-size:14px;flex-shrink:0;text-transform:uppercase}
+.user .who{min-width:0}
+.user .nm{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user .rl{font-size:12px;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.suc-box{padding:14px 22px 6px}
+.suc-box label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.06em;opacity:.8;margin-bottom:6px}
+.suc-box select{width:100%;background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.35)}
+.suc-box select option,.suc-box select optgroup{color:#333;background:#fff}
+.suc-box select:disabled{opacity:.85}
+.sidebar nav{padding:10px 0;display:flex;flex-direction:column;gap:4px}
+.sidebar nav button{display:flex;align-items:center;gap:14px;margin:0 12px;padding:11px 14px;border:none;border-radius:4px;background:none;color:#fff;opacity:.86;
+ text-transform:uppercase;font-size:12px;font-weight:600;letter-spacing:.03em;cursor:pointer;text-align:left}
+.sidebar nav button:hover{background:rgba(255,255,255,.13);opacity:1}
+.sidebar nav button.on{background:rgba(255,255,255,.23);opacity:1}
+.side-foot{margin-top:auto;padding:16px 22px calc(16px + env(safe-area-inset-bottom,0px));font-size:11px;opacity:.7;border-top:1px solid rgba(255,255,255,.2)}
+
+/* ---------- Panel principal ---------- */
+.main-panel{margin-left:var(--side-w);min-height:100vh;display:flex;flex-direction:column}
+.topbar{position:sticky;top:0;z-index:20;background:var(--panel);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;
+ padding:calc(10px + env(safe-area-inset-top,0px)) 24px 10px;min-height:64px}
+.topbar .title{font-size:20px;font-weight:400;color:var(--ink-mid);margin:0;margin-right:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar .ctx{font-size:13px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40vw}
+.icon-btn{display:inline-flex;align-items:center;gap:6px;border:none;background:none;color:var(--ink-mid);cursor:pointer;padding:8px;border-radius:4px;font-size:13px}
+.icon-btn:hover{background:var(--bg)}
+#btnMenu{display:none}
+main{padding:28px 24px 96px;width:100%}
+.content-footer{margin-top:auto;border-top:1px solid var(--line);padding:16px 24px;font-size:12px;color:var(--ink-soft);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--panel)}
+.overlay{display:none}
+
+/* Encabezado de cada vista (el título grande va en la barra superior) */
+h1.pt{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.sub{color:var(--ink-soft);font-size:14px;margin:0 0 20px}
+
+/* ---------- Tarjetas ---------- */
+.card,.taskcard{background:var(--panel);border-radius:4px;box-shadow:var(--shadow);margin-bottom:20px;border:none}
+.card{padding:0}
+.card-header{padding:16px 18px 0}
+.card-title{margin:0;font-size:21px;font-weight:300;color:var(--ink)}
+.card-category{margin:4px 0 0;font-size:14px;color:var(--ink-soft)}
+.card-body{padding:12px 18px 16px}
+.card-footer{margin:0 18px;padding:10px 0 14px;border-top:1px solid var(--line);font-size:12px;color:var(--ink-soft);display:flex;align-items:center;gap:6px}
+.card-footer svg.i{width:14px;height:14px}
+.grid{display:grid;gap:20px;grid-template-columns:repeat(12,1fr)}
+.col-4{grid-column:span 4}.col-5{grid-column:span 5}.col-6{grid-column:span 6}.col-7{grid-column:span 7}.col-8{grid-column:span 8}.col-12{grid-column:span 12}
+.grid>.card{margin-bottom:0}
+.sec-title{font-size:21px;font-weight:300;color:var(--ink);margin:8px 0 12px}
+
+/* ---------- Auditoría ---------- */
+.qitem{padding:14px 0;border-bottom:1px solid var(--line)}
+.qitem:last-child{border-bottom:none}
+.qrow{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
+.qtxt{font-size:15px;line-height:1.4;max-width:62ch}
 .toggle{display:flex;gap:6px;flex-shrink:0}
-.toggle button{border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:6px 14px;border-radius:3px;cursor:pointer;font-weight:500}
-.toggle button.sel-si{background:var(--vencbg);border-color:var(--venc);color:var(--venc)}
-.toggle button.sel-no{background:var(--donebg);border-color:var(--done);color:var(--done)}
+.toggle button{border:1px solid var(--line);background:var(--panel);color:var(--ink-mid);padding:7px 18px;border-radius:4px;cursor:pointer;font-weight:500;transition:background .15s,border-color .15s}
+.toggle button:hover{border-color:var(--ink-soft)}
+.toggle button.sel-si{background:var(--venc);border-color:var(--venc);color:#fff}
+.toggle button.sel-no{background:var(--done);border-color:var(--done);color:#fff}
 .qmore{display:flex;gap:8px;margin-top:10px;align-items:flex-start}
-.qmore textarea{flex:1;border:1px solid var(--line);border-radius:3px;padding:7px 9px;resize:vertical;min-height:34px;background:var(--paper);color:var(--ink)}
-.foto-btn{border:1px dashed var(--line);background:var(--paper);color:var(--ink-soft);border-radius:3px;padding:7px 10px;cursor:pointer;white-space:nowrap}
-.foto-btn.on{border-style:solid;border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
-.badge{font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:99px;white-space:nowrap}
+.qmore textarea{flex:1;border:1px solid var(--line);border-radius:4px;padding:8px 10px;resize:vertical;min-height:36px;background:var(--panel);color:var(--ink)}
+.foto-btn{border:1px dashed var(--ink-soft);background:var(--panel);color:var(--ink-mid);border-radius:4px;padding:8px 12px;cursor:pointer;white-space:nowrap}
+.foto-btn.on{border-style:solid;border-color:var(--rev);color:var(--rev);background:var(--revbg)}
+.progwrap{display:flex;align-items:center;gap:12px;margin:0 0 20px}
+.progtrack{flex:1;height:8px;border-radius:99px;background:var(--line);overflow:hidden}
+.progfill{height:100%;background:linear-gradient(90deg,var(--side1),var(--side2));transition:width .25s ease}
+.progtxt{font-size:12px;color:var(--ink-soft);white-space:nowrap}
+.firmas{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:0 24px}
+.firma-nombre{width:100%;max-width:300px;border:1px solid var(--line);border-radius:4px;padding:8px 10px;background:var(--panel);color:var(--ink);margin-bottom:6px;display:block}
+.stickybar{position:sticky;bottom:0;background:var(--panel);box-shadow:0 -1px 0 var(--line),0 -6px 16px rgba(0,0,0,.04);margin:20px -24px -96px;
+ padding:12px 24px calc(12px + env(safe-area-inset-bottom,0px));display:flex;justify-content:flex-end;align-items:center;gap:12px;z-index:10}
+.aviso{font-size:13px;color:var(--venc);margin-left:auto}
+.result{background:var(--panel);border-left:4px solid var(--done);box-shadow:var(--shadow);border-radius:4px;padding:16px 18px;margin:0 0 20px;font-size:14px}
+
+/* ---------- Botones e insignias ---------- */
+.btn{border:1px solid var(--primary);background:var(--primary);color:#fff;padding:10px 20px;border-radius:4px;cursor:pointer;font-weight:500;font-size:14px;transition:background .15s}
+.btn:hover:not(:disabled){background:var(--primary-d);border-color:var(--primary-d)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.ghost{background:none;color:var(--ink-mid);border-color:var(--line)}
+.btn.ghost:hover:not(:disabled){background:var(--bg);border-color:var(--ink-soft)}
+.btn.danger{background:var(--venc);border-color:var(--venc)}
+.linkbtn{background:none;border:none;color:var(--primary);cursor:pointer;padding:0;font-size:13px;text-decoration:none}
+.linkbtn:hover{text-decoration:underline}
+.badge{font-size:11px;font-weight:500;padding:3px 9px;border-radius:99px;white-space:nowrap;text-transform:uppercase;letter-spacing:.02em}
 .b-pend{background:var(--pendbg);color:var(--pend)} .b-venc{background:var(--vencbg);color:var(--venc)}
 .b-rev{background:var(--revbg);color:var(--rev)} .b-done{background:var(--donebg);color:var(--done)}
-.btn{border:1px solid var(--ink);background:var(--ink);color:var(--paper);padding:10px 18px;border-radius:3px;cursor:pointer;font-weight:600}
-.btn:disabled{opacity:.4;cursor:not-allowed}
-.btn.ghost{background:none;color:var(--ink);border-color:var(--line)}
-.result{background:var(--accent-bg);border:1px solid var(--accent);border-radius:4px;padding:14px 16px;margin:16px 0;font-size:14px}
-.taskcard{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:14px 16px;margin-bottom:12px}
-.taskhead{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:6px}
-.taskhead h4{margin:0;font-size:14.5px;font-family:var(--sans)}
-.meta{font-size:12px;color:var(--ink-soft);margin-bottom:8px}
-.evid{background:var(--paper);border:1px solid var(--line);border-radius:3px;padding:9px 11px;font-size:13px;margin:8px 0}
-.row2{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
-.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:14px 0 20px}
-.stat{border:1px solid var(--line);border-radius:4px;padding:14px 16px}
-.stat .n{font-family:var(--serif);font-size:28px;font-weight:700;line-height:1}
-.stat .l{font-size:12px;color:var(--ink-soft);margin-top:3px}
-.stat.pend{background:var(--pendbg)} .stat.venc{background:var(--vencbg)} .stat.rev{background:var(--revbg)} .stat.done{background:var(--donebg)}
-.stat.pend .n{color:var(--pend)} .stat.venc .n{color:var(--venc)} .stat.rev .n{color:var(--rev)} .stat.done .n{color:var(--done)}
-.bars{display:flex;flex-direction:column;gap:8px;margin:10px 0 20px}
-.bar-row{display:grid;grid-template-columns:150px 1fr 28px;gap:8px;align-items:center;font-size:12.5px}
+
+/* ---------- Tareas ---------- */
+.taskcard{padding:16px 18px}
+.taskhead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:6px}
+.taskhead h4{margin:0;font-size:16px;font-weight:400;line-height:1.35}
+.meta{font-size:12.5px;color:var(--ink-soft);margin-bottom:10px}
+.evid{background:var(--bg);border-radius:4px;padding:10px 12px;font-size:13.5px;margin:8px 0}
+.row2{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+.fotos{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.fotos a{display:block;width:84px;height:84px;border-radius:4px;overflow:hidden;background:var(--bg);box-shadow:var(--shadow)}
+.fotos img{width:100%;height:100%;object-fit:cover;display:block}
+
+/* ---------- Reportes ---------- */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin:0 0 20px}
+.stat{background:var(--panel);border-radius:4px;box-shadow:var(--shadow);padding:16px 18px 0;display:grid;grid-template-columns:auto 1fr;align-items:center;gap:8px 12px}
+.stat .ic{width:52px;height:52px;display:grid;place-items:center}
+.stat .ic svg.i{width:44px;height:44px;stroke-width:1.5}
+.stat .txt{text-align:right}
+.stat .l{font-size:14px;color:var(--ink-soft)}
+.stat .n{font-size:30px;font-weight:300;line-height:1.2;color:var(--ink)}
+.stat .ft{grid-column:1/-1;border-top:1px solid var(--line);padding:10px 0 12px;font-size:12px;color:var(--ink-soft);display:flex;align-items:center;gap:6px}
+.stat .ft svg.i{width:14px;height:14px}
+.stat.pend .ic{color:var(--pend)} .stat.venc .ic{color:var(--venc)} .stat.rev .ic{color:var(--rev)} .stat.done .ic{color:var(--done)}
+.bars{display:flex;flex-direction:column;gap:10px;margin:4px 0}
+.bar-row{display:grid;grid-template-columns:180px 1fr 32px;gap:10px;align-items:center;font-size:13px}
 .bar-row>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bar-track{background:var(--paper);border:1px solid var(--line);border-radius:2px;height:12px;overflow:hidden}
-.bar-fill{height:100%;background:var(--pend)}
-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
-th{font-family:var(--mono);font-size:10.5px;text-align:left;color:var(--ink-soft);padding:7px 8px;border-bottom:1px solid var(--ink)}
-td{padding:7px 8px;border-bottom:1px solid var(--line)}
-.notiffeed{font-size:12.5px;color:var(--ink-soft);max-height:170px;overflow-y:auto;border:1px solid var(--line);border-radius:4px;padding:10px 12px;background:var(--panel)}
-.notiffeed div{padding:3px 0;border-bottom:1px dashed var(--line)}
+.bar-track{background:var(--bg);border-radius:99px;height:10px;overflow:hidden}
+.bar-fill{height:100%;background:var(--pend);border-radius:99px}
+.vbars{display:flex;align-items:flex-end;gap:14px;height:220px;padding:10px 4px 0;border-bottom:1px solid var(--line);overflow-x:auto}
+.vbar{flex:1 0 44px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:6px}
+.vbar .col{width:60%;max-width:46px;border-radius:4px 4px 0 0;min-height:4px}
+.vbar .v{font-size:12px;color:var(--ink-mid)}
+.vlabels{display:flex;gap:14px;padding:6px 4px 0;overflow-x:auto}
+.vlabels span{flex:1 0 44px;text-align:center;font-size:11.5px;color:var(--ink-soft)}
+.donut-wrap{display:flex;align-items:center;justify-content:center;gap:24px;flex-wrap:wrap;padding:8px 0}
+.legend{display:flex;flex-direction:column;gap:8px;font-size:13px;color:var(--ink-mid)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px;vertical-align:middle}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{font-size:12px;font-weight:500;text-transform:uppercase;text-align:left;color:var(--ink-soft);padding:10px 8px;border-bottom:1px solid var(--line)}
+td{padding:11px 8px;border-bottom:1px solid var(--line)}
+tr:last-child td{border-bottom:none}
+.notiffeed{font-size:13.5px;color:var(--ink-mid);max-height:320px;overflow-y:auto}
+.notiffeed div{padding:10px 0;border-bottom:1px solid var(--line);display:flex;gap:10px}
 .notiffeed div:last-child{border-bottom:none}
-.filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
-.empty{color:var(--ink-soft);font-size:13.5px;padding:20px 0;text-align:center}
-button:focus-visible,select:focus-visible,textarea:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.notiffeed time{color:var(--ink-soft);font-size:12px;white-space:nowrap;min-width:92px}
+.empty{color:var(--ink-soft);font-size:14px;padding:24px 0;text-align:center}
+
+button:focus-visible,select:focus-visible,textarea:focus-visible,input:focus-visible{outline:2px solid var(--primary);outline-offset:1px}
+.sidebar button:focus-visible,.sidebar select:focus-visible{outline-color:#fff}
 #app{animation:fadeIn .18s ease}
 @keyframes fadeIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
-@media (prefers-reduced-motion:reduce){#app{animation:none}}
-.progwrap{display:flex;align-items:center;gap:10px;margin:0 0 18px}
-.progtrack{flex:1;height:6px;border-radius:99px;background:var(--line);overflow:hidden}
-.progfill{height:100%;background:var(--accent);transition:width .25s ease}
-.progtxt{font-family:var(--mono);font-size:11.5px;color:var(--ink-soft);white-space:nowrap}
-.stickybar{position:sticky;bottom:0;bottom:env(safe-area-inset-bottom,0px);background:var(--paper);border-top:1px solid var(--line);margin:20px -18px -90px;padding:12px 18px calc(12px + env(safe-area-inset-bottom,0px));display:flex;justify-content:flex-end;gap:10px}
+@media (prefers-reduced-motion:reduce){#app,.sidebar{animation:none;transition:none}}
 .toasts{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));width:max-content;max-width:calc(100vw - 32px);z-index:50;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
-.toast{background:var(--ink);color:var(--paper);font-size:13px;padding:9px 16px;border-radius:99px;box-shadow:0 4px 14px rgba(0,0,0,.18);animation:toastIn .18s ease, toastOut .25s ease 2.6s forwards}
+.toast{background:#333;color:#fff;font-size:13.5px;padding:10px 18px;border-radius:4px;box-shadow:0 6px 18px rgba(0,0,0,.2);text-align:center;animation:toastIn .18s ease, toastOut .25s ease 2.6s forwards}
 @keyframes toastIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 @keyframes toastOut{to{opacity:0;transform:translateY(-4px)}}
-/* ---------- Login (Supabase) ---------- */
-body.locked header, body.locked nav, body.locked main{display:none}
+
+/* ---------- Login ---------- */
+body.locked .sidebar, body.locked .main-panel{display:none}
 body:not(.locked) #auth{display:none}
-#auth{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px}
-.auth-card{width:100%;max-width:380px;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:28px 24px}
-.auth-card .brand{font-size:22px;margin:0 0 4px}
-.auth-card h2{font-family:var(--serif);font-size:17px;margin:18px 0 14px}
-.field{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
-.field label{font-size:12.5px;color:var(--ink-soft);font-weight:500}
-.field input{border:1px solid var(--line);border-radius:3px;padding:10px 11px;background:var(--paper);color:var(--ink);font-size:14px}
-.auth-card .btn{width:100%;margin-top:4px}
-.auth-links{display:flex;justify-content:space-between;gap:10px;margin-top:14px;font-size:12.5px;flex-wrap:wrap}
-.linkbtn{background:none;border:none;color:var(--accent);cursor:pointer;padding:0;font-size:12.5px;text-decoration:underline}
-.auth-msg{font-size:13px;border-radius:3px;padding:9px 11px;margin-bottom:12px;display:none}
-.auth-msg.err{display:block;background:var(--vencbg);color:var(--venc);border:1px solid var(--venc)}
-.auth-msg.ok{display:block;background:var(--donebg);color:var(--done);border:1px solid var(--done)}
-.auth-cfg{font-size:12px;background:var(--revbg);color:var(--rev);border:1px solid var(--rev);border-radius:3px;padding:9px 11px;margin-top:10px}
-.userbox{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-soft)}
-.userbox .btn{padding:6px 12px;font-size:12.5px}
-.fotos{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
-.fotos a{display:block;width:84px;height:84px;border:1px solid var(--line);border-radius:3px;overflow:hidden;background:var(--paper)}
-.fotos img{width:100%;height:100%;object-fit:cover;display:block}
-.firma-nombre{width:100%;max-width:300px;border:1px solid var(--line);border-radius:3px;padding:7px 9px;background:var(--paper);color:var(--ink);margin-bottom:6px;display:block}
-.aviso{font-size:12.5px;color:var(--venc);margin-left:auto;align-self:center}
-.firmas{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:0 24px}
-.toast{text-align:center}
+#auth{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px;
+ background:radial-gradient(80% 60% at 0% 100%,rgba(0,0,0,.2),transparent 60%),linear-gradient(160deg,var(--side1),var(--side2))}
+.auth-card{width:100%;max-width:400px;background:var(--panel);border-radius:6px;padding:30px 28px;box-shadow:0 20px 50px rgba(0,0,0,.25)}
+.auth-card .logo{color:var(--ink);border:none;padding:0 0 4px}
+.auth-card .logo .mark{background:linear-gradient(160deg,var(--side1),var(--side2));color:#fff}
+.auth-card h2{font-size:22px;font-weight:300;margin:20px 0 16px}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.field label{font-size:13px;color:var(--ink-mid);font-weight:500}
+.field input{border:1px solid var(--line);border-radius:4px;padding:11px 12px;background:var(--panel);color:var(--ink);font-size:14px}
+.field input:focus{border-color:var(--primary);outline:none;box-shadow:0 0 0 3px var(--accent-bg)}
+.auth-card .btn{width:100%;margin-top:6px;padding:12px}
+.auth-links{display:flex;justify-content:space-between;gap:10px;margin-top:16px;flex-wrap:wrap}
+.auth-msg{font-size:13px;border-radius:4px;padding:10px 12px;margin-bottom:14px;display:none}
+.auth-msg.err{display:block;background:var(--vencbg);color:var(--venc)}
+.auth-msg.ok{display:block;background:var(--donebg);color:var(--done)}
+.auth-cfg{font-size:12px;background:var(--revbg);color:var(--rev);border-radius:4px;padding:10px 12px;margin-top:12px}
 
 /* ================= RESPONSIVE =================
    PC: > 1024px · Tablet: 601–1024px · Celular: ≤ 600px
-   Pantallas táctiles (celular y tablet): botones de al menos 44px de alto */
+   En tablet y celular la barra lateral se abre con el botón de menú. */
 @media (pointer:coarse){
- .toggle button{min-height:44px;min-width:60px}
- .btn,.foto-btn{min-height:44px}
- nav button{min-height:44px}
+ .toggle button{min-height:44px;min-width:64px}
+ .btn,.foto-btn,.sidebar nav button{min-height:44px}
  .linkbtn{padding:8px 0}
 }
-@media (min-width:1025px){
- main,.htop,.navin{max-width:1100px}
- .stat-grid{grid-template-columns:repeat(4,1fr)}
+@media (max-width:1180px){
+ .stat-grid{grid-template-columns:repeat(2,1fr)}
+ .col-4,.col-5,.col-6,.col-7,.col-8{grid-column:span 12}
+}
+@media (max-width:1024px){
+ .sidebar{transform:translateX(-100%);transition:transform .25s ease}
+ body.nav-open .sidebar{transform:none}
+ body.nav-open .overlay{display:block;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:25}
+ .main-panel{margin-left:0}
+ #btnMenu{display:inline-flex}
+ .toggle button{min-height:44px;min-width:64px}
+ .btn,.foto-btn{min-height:44px}
 }
 @media (min-width:601px) and (max-width:1024px){
- header{padding:14px 24px 4px} nav{padding:0 24px} main{padding:22px 24px 90px}
- .stickybar{margin:20px -24px -90px;padding-left:24px;padding-right:24px}
- .stat-grid{grid-template-columns:repeat(4,1fr)}
- /* Por si la tablet no se reporta como táctil */
- .toggle button{min-height:44px;min-width:60px}
- .btn,.foto-btn,nav button{min-height:44px}
+ .col-6{grid-column:span 6}
 }
 @media (max-width:600px){
  /* 16px evita que el iPhone haga zoom al tocar un campo */
  select,textarea,input,.field input{font-size:16px}
- header{padding:12px 16px 2px} nav{padding:0 16px} main{padding:18px 16px 90px}
- .htop{gap:8px}
- .brand{font-size:16px}
- .userbox span{max-width:42vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
- #selSucursal{order:3;flex:1 1 100%;min-width:0}
- .navin{gap:0}
- nav button{flex:1;padding:10px 6px}
- h1.pt{font-size:20px}
+ .topbar{padding:calc(8px + env(safe-area-inset-top,0px)) 12px 8px;min-height:56px;gap:6px}
+ .topbar .title{font-size:18px}
+ .topbar .ctx,.icon-btn .lbl{display:none}
+ main{padding:16px 16px 96px}
+ .content-footer{padding:14px 16px}
+ .stat-grid{gap:12px}
+ .stat{padding:12px;grid-template-columns:1fr;border-top:3px solid var(--line)}
+ .stat.pend{border-top-color:var(--pend)} .stat.venc{border-top-color:var(--venc)} .stat.rev{border-top-color:var(--rev)} .stat.done{border-top-color:var(--done)}
+ .stat .ic,.stat .ft{display:none}
+ .stat .txt{text-align:left}
+ .stat .n{font-size:26px}
+ .card-header{padding:14px 14px 0} .card-body{padding:10px 14px 14px} .card-footer{margin:0 14px}
+ .taskcard{padding:14px}
+ .card-title,.sec-title{font-size:19px}
  /* Pregunta arriba y botones Sí/No a todo lo ancho, fáciles de tocar con el pulgar */
- .card,.taskcard{padding:12px}
  .qrow{flex-direction:column;gap:10px}
  .qtxt{max-width:none}
  .toggle{width:100%}
@@ -165,22 +259,20 @@ body:not(.locked) #auth{display:none}
  .qmore{flex-wrap:wrap}
  .qmore textarea{flex:1 1 100%}
  .foto-btn{flex:1 1 100%;text-align:center}
- .taskhead{align-items:flex-start}
  .row2 .btn,.row2 .foto-btn{flex:1 1 auto}
- .stickybar{margin:20px -16px -90px;padding-left:16px;padding-right:16px;align-items:center}
+ .stickybar{margin:20px -16px -96px;padding-left:16px;padding-right:16px}
  .stickybar .btn{flex:1}
  .stickybar .aviso{margin-left:0;flex:0 0 auto}
- .stat{padding:12px}
- .stat .n{font-size:24px}
- .bar-row{grid-template-columns:1fr 28px;gap:4px 8px}
+ .bar-row{grid-template-columns:1fr 32px;gap:4px 10px}
  .bar-row>span:first-child{grid-column:1/-1}
  /* Tablas → tarjetas: cada fila se apila con su etiqueta */
  table.rtable,table.rtable tbody,table.rtable tr,table.rtable td{display:block;width:100%}
  table.rtable tr:first-child{display:none}
- table.rtable tr{border:1px solid var(--line);border-radius:4px;background:var(--panel);padding:8px 12px;margin-bottom:8px}
+ table.rtable tr{border-bottom:1px solid var(--line);padding:10px 0}
+ table.rtable tr:last-child{border-bottom:none}
  table.rtable td{border:none;padding:3px 0;display:flex;gap:12px;justify-content:space-between;text-align:right}
- table.rtable td::before{content:attr(data-label);font-family:var(--mono);font-size:10.5px;color:var(--ink-soft);text-align:left;flex-shrink:0;padding-top:2px}
- .auth-card{padding:24px 18px}
+ table.rtable td::before{content:attr(data-label);font-size:11px;text-transform:uppercase;color:var(--ink-soft);text-align:left;flex-shrink:0;padding-top:2px}
+ .auth-card{padding:24px 20px}
 }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.min.js"></script>
@@ -188,7 +280,7 @@ body:not(.locked) #auth{display:none}
 <body class="locked">
 <section id="auth">
  <div class="auth-card">
-  <div class="brand">Check<span>List</span> · Auditorías</div>
+  <div class="logo"><span class="mark">CL</span><span><b>CheckList</b> Auditorías</span></div>
   <h2 id="authTitle">Iniciar sesión</h2>
   <div class="auth-msg" id="authMsg"></div>
   <form id="authForm" novalidate>
@@ -204,19 +296,44 @@ body:not(.locked) #auth{display:none}
   <div class="auth-cfg" id="authCfg" style="display:none">Falta configurar Supabase: edita <code>SUPABASE_URL</code> y <code>SUPABASE_ANON_KEY</code> al inicio del script de login.</div>
  </div>
 </section>
-<header>
- <div class="htop">
-  <div class="brand">Check<span>List</span> · Auditorías</div>
-  <select id="selSucursal"></select>
-  <div class="userbox"><span id="userEmail"></span><button class="btn ghost" id="btnLogout">Salir</button></div>
- </div>
-</header>
-<nav aria-label="Secciones"><div class="navin">
-  <button data-v="audit" class="on">Auditoría</button>
-  <button data-v="tasks">Tareas</button>
-  <button data-v="dash">Reportes</button>
-</div></nav>
-<main id="app"></main>
+
+<!-- Íconos (dibujados para esta app) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+ <symbol id="i-check" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/><path d="M15 16l1.5 1.5L19 15"/></symbol>
+ <symbol id="i-tasks" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M3.5 6l1.2 1.2L7 5M3.5 12l1.2 1.2L7 11M3.5 18l1.2 1.2L7 17"/></symbol>
+ <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
+ <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+ <symbol id="i-out" viewBox="0 0 24 24"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l-5-5 5-5M5 12h11"/></symbol>
+ <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+ <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3l9.5 17h-19z"/><path d="M12 10v4M12 17.5v.01"/></symbol>
+ <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+ <symbol id="i-done" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/></symbol>
+ <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5"/></symbol>
+</svg>
+
+<aside class="sidebar" id="sidebar" aria-label="Menú principal">
+ <div class="logo"><span class="mark">CL</span><span><b>CheckList</b> Auditorías</span></div>
+ <div class="user"><span class="avatar" id="avatar">—</span><div class="who"><div class="nm" id="userEmail"></div><div class="rl" id="userRole"></div></div></div>
+ <div class="suc-box"><label for="selSucursal">Sucursal</label><select id="selSucursal"></select></div>
+ <nav aria-label="Secciones">
+  <button data-v="audit" class="on"><svg class="i"><use href="#i-check"/></svg>Auditoría</button>
+  <button data-v="tasks"><svg class="i"><use href="#i-tasks"/></svg>Tareas</button>
+  <button data-v="dash"><svg class="i"><use href="#i-chart"/></svg>Reportes</button>
+ </nav>
+ <div class="side-foot">Orden y limpieza · KNO</div>
+</aside>
+<div class="overlay" id="overlay"></div>
+
+<div class="main-panel">
+ <header class="topbar">
+  <button class="icon-btn" id="btnMenu" aria-label="Abrir menú" aria-controls="sidebar" aria-expanded="false"><svg class="i"><use href="#i-menu"/></svg></button>
+  <h1 class="title" id="pageTitle">Auditoría</h1>
+  <span class="ctx" id="pageCtx"></span>
+  <button class="icon-btn" id="btnLogout" title="Cerrar sesión"><svg class="i"><use href="#i-out"/></svg><span class="lbl">Salir</span></button>
+ </header>
+ <main id="app"></main>
+ <footer class="content-footer"><span>CheckList · Auditorías de orden y limpieza</span><span id="footYear"></span></footer>
+</div>
 <div class="toasts" id="toasts"></div>
 
 <script>
@@ -329,7 +446,8 @@ function limpiarSesion(){
  PERFIL = null; TASKS = []; NOTIFS = []; DASH = null; pendingTaskFile = {};
  Object.assign(state, estadoAuditoriaVacio(), {view:'audit'});
  document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on', x.dataset.v==='audit'));
- $('userEmail').textContent = ''; document.getElementById('app').innerHTML = '';
+ $('userEmail').textContent = ''; $('userRole').textContent = ''; $('avatar').textContent = '—';
+ document.getElementById('app').innerHTML = '';
 }
 function fechaHora(f){ return new Date(f).toLocaleString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}); }
 function toast(msgTxt){
@@ -355,7 +473,9 @@ async function boot(session){
    return;
   }
   PERFIL = perfil;
-  $('userEmail').textContent = `${perfil.nombre} · ${perfil.rol}`;
+  $('userEmail').textContent = perfil.nombre;
+  $('userRole').textContent = [perfil.puesto, perfil.rol!=='Usuario' ? perfil.rol : ''].filter(Boolean).join(' · ') || perfil.rol;
+  $('avatar').textContent = (perfil.nombre||'?').split(/\s+/).filter(Boolean).slice(0,2).map(p=>p[0]).join('');
  }catch(err){
   document.getElementById('app').innerHTML = `<div class="result">No se pudo cargar tu perfil: ${esc(err.message||err)}</div>`;
   return;
@@ -596,16 +716,20 @@ function renderAudit(){
  const preguntas = PUNTOS;
  const contestadas = preguntas.filter(q=>state.respuestas[q.id]).length;
  const faltan = preguntas.length - contestadas;
- let html = `<h1 class="pt">Calificar check list</h1><p class="sub">${s?esc(s.c+' · '+s.t):'Selecciona una sucursal'} · folio se genera al calificar</p>
+ let html = `<h1 class="pt">Calificar check list</h1><p class="sub">${s?esc(s.c+' · '+s.t):'Selecciona una sucursal'} · el folio se genera al calificar</p>
   <div class="progwrap"><div class="progtrack"><div class="progfill" style="width:${preguntas.length?contestadas/preguntas.length*100:0}%"></div></div><span class="progtxt">${contestadas}/${preguntas.length} contestadas</span></div>`;
- let lastSec = '';
- preguntas.forEach(q=>{
-  if(q.sec!==lastSec){ html += `<div class="sec-title">${esc(q.sec)}</div>`; lastSec = q.sec; }
+ // Una tarjeta por sección del checklist
+ const secciones = [];
+ preguntas.forEach(q=>{ const ult = secciones[secciones.length-1]; if(ult && ult.nombre===q.sec) ult.qs.push(q); else secciones.push({nombre:q.sec, qs:[q]}); });
+ secciones.forEach(sec=>{
+  const hechas = sec.qs.filter(q=>state.respuestas[q.id]).length;
+  html += `<div class="card"><div class="card-header"><h2 class="card-title">${esc(sec.nombre)}</h2><p class="card-category">${hechas} de ${sec.qs.length} contestadas</p></div><div class="card-body">`;
+  sec.qs.forEach(q=>{
   const v = state.respuestas[q.id];
   // Rojo = no cumple, verde = cumple (depende de si la pregunta es positiva o negativa)
   const cls = val => v===val ? (incumple(q,val)?'sel-si':'sel-no') : '';
   const foto = state.fotos[q.id];
-  html += `<div class="card">
+  html += `<div class="qitem">
    <div class="qrow">
     <div class="qtxt" id="qt-${q.id}">${esc(q.texto)}</div>
     <div class="toggle" data-q="${q.id}" role="group" aria-labelledby="qt-${q.id}">
@@ -619,17 +743,20 @@ function renderAudit(){
     <input type="file" accept="image/*" capture="environment" style="display:none" data-finput="${q.id}">` : ''}
    </div>
   </div>`;
+  });
+  html += `</div></div>`;
  });
  const firma = (id, etiqueta, nombreKey) => `<div style="margin-bottom:16px">
-   <label style="font-size:12.5px;color:var(--ink-soft);display:block;margin-bottom:4px" for="${nombreKey}">${etiqueta}</label>
+   <label style="font-size:13px;color:var(--ink-mid);font-weight:500;display:block;margin-bottom:6px" for="${nombreKey}">${etiqueta}</label>
    <input class="firma-nombre" id="${nombreKey}" placeholder="Nombre de quien firma" value="${esc(state[nombreKey])}" autocomplete="off">
-   <canvas id="${id}" width="300" height="90" style="border:1px solid var(--line);border-radius:3px;background:#FFFFFF;touch-action:none;display:block;max-width:100%"></canvas>
-   <button type="button" class="linkbtn" data-limpiar="${id}">Limpiar firma</button>
+   <canvas id="${id}" width="300" height="90" style="border:1px solid var(--line);border-radius:4px;background:#FFFFFF;touch-action:none;display:block;max-width:100%"></canvas>
+   <button type="button" class="linkbtn" data-limpiar="${id}" style="margin-top:6px">Limpiar firma</button>
   </div>`;
- html += `<div class="sec-title">Firmas de conformidad (opcional)</div><div class="card firmas">
+ html += `<div class="card"><div class="card-header"><h2 class="card-title">Firmas de conformidad</h2><p class="card-category">Opcional · jefe de almacén y gerente</p></div>
+  <div class="card-body firmas">
   ${firma('firmaJefe','Firma del jefe de almacén','nombreJefe')}
   ${firma('firmaGerente','Firma del gerente','nombreGerente')}
- </div>`;
+ </div></div>`;
  html += `<div id="resultBox">${state.ultimoResultado}</div><div class="stickybar">${faltan?`<span class="aviso">Faltan ${faltan} pregunta(s)</span>`:''}<button class="btn" id="btnCalificar" ${faltan||!preguntas.length?'disabled':''}>Calificar y generar tareas</button></div>`;
  document.getElementById('app').innerHTML = html;
 
@@ -754,7 +881,7 @@ function renderTasks(){
  const esAdmin = PERFIL.rol==='Administrador' || PERFIL.rol==='Supervisor';
  let html = `<h1 class="pt">Tareas</h1><p class="sub">${s?s.c+' · '+s.t:''}</p>`;
  if(esAdmin){
-  html += `<div class="filters"><label style="font-size:12.5px;color:var(--ink-soft)">Ver como&nbsp;
+  html += `<div class="filters"><label style="font-size:13px;color:var(--ink-mid)">Ver como&nbsp;
    <select id="rolSel">
     <option ${state.rolTareas==='Jefe de Almacén'?'selected':''}>Jefe de Almacén</option>
     <option ${state.rolTareas==='Gerente'?'selected':''}>Gerente</option>
@@ -888,43 +1015,101 @@ async function cargarDash(){
  }catch(err){ DASH = null; toast('No se pudieron calcular los totales: '+(err.message||err)); }
 }
 
+const ico = (id, cls='i') => `<svg class="${cls}" aria-hidden="true"><use href="#i-${id}"/></svg>`;
+const piePie = txt => `<div class="card-footer">${ico('clock')}${esc(txt)}</div>`;
+
+// Gráfica de dona en SVG (sin librerías)
+function donaSvg(partes){
+ const total = partes.reduce((a,p)=>a+p.v,0);
+ const r = 60, C = 2*Math.PI*r; let off = 0;
+ const arcos = total ? partes.filter(p=>p.v>0).map(p=>{ const len = p.v/total*C; const a = `<circle r="${r}" cx="80" cy="80" fill="none" stroke="${p.color}" stroke-width="26" stroke-dasharray="${len} ${C-len}" stroke-dashoffset="${-off}" transform="rotate(-90 80 80)"><title>${esc(p.l)}: ${p.v}</title></circle>`; off += len; return a; }).join('')
+  : `<circle r="${r}" cx="80" cy="80" fill="none" stroke="var(--line)" stroke-width="26"/>`;
+ return `<div class="donut-wrap"><svg width="160" height="160" viewBox="0 0 160 160" role="img" aria-label="Tareas por estado">${arcos}
+  <text x="80" y="78" text-anchor="middle" font-size="26" font-weight="300" fill="var(--ink)">${total}</text><text x="80" y="98" text-anchor="middle" font-size="11" fill="var(--ink-soft)">tareas</text></svg>
+  <div class="legend">${partes.map(p=>`<span><i style="background:${p.color}"></i>${esc(p.l)} · ${p.v}</span>`).join('')}</div></div>`;
+}
+const colorCumpl = p => p>=90 ? 'var(--done)' : p>=75 ? 'var(--pend)' : 'var(--venc)';
+
 function renderDash(){
  const suc = TASKS;
  const c = e=>suc.filter(t=>t.estado===e).length;
  const n = (k, e) => DASH ? DASH[k] : c(e);
- let html = `<h1 class="pt">Reportes</h1><p class="sub">Todas las sucursales · datos en vivo desde Supabase</p>
+ const hora = 'Actualizado ' + new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
+ const stat = (cls, icon, label, v) => `<div class="stat ${cls}"><div class="ic">${ico(icon)}</div><div class="txt"><div class="l">${label}</div><div class="n">${v}</div></div><div class="ft">${ico('refresh')}${hora}</div></div>`;
+ let html = `<h1 class="pt">Reportes</h1><p class="sub">Todas las sucursales · datos en vivo</p>
   <div class="stat-grid">
-   <div class="stat pend"><div class="n">${n('pend','Pendiente')}</div><div class="l">Pendientes</div></div>
-   <div class="stat venc"><div class="n">${n('venc','Vencida')}</div><div class="l">Vencidas</div></div>
-   <div class="stat rev"><div class="n">${n('rev','PorAprobar')}</div><div class="l">Por aprobar</div></div>
-   <div class="stat done"><div class="n">${n('done','Finalizada')}</div><div class="l">Finalizadas</div></div>
+   ${stat('pend','tasks','Pendientes', n('pend','Pendiente'))}
+   ${stat('venc','alert','Vencidas', n('venc','Vencida'))}
+   ${stat('rev','eye','Por aprobar', n('rev','PorAprobar'))}
+   ${stat('done','done','Finalizadas', n('done','Finalizada'))}
   </div>`;
- html += `<div class="sec-title">Cumplimiento por sucursal (últimos 90 días)</div>`;
- html += DASH && DASH.cumplimiento.length
-  ? `<table class="rtable"><tr><th>Sucursal</th><th>Última</th><th>Promedio</th><th>Auditorías</th><th>Última fecha</th></tr>${DASH.cumplimiento.map(r=>{ const s=sucursalObj(r.c); const col = r.prom>=90?'var(--done)':r.prom>=75?'var(--rev)':'var(--venc)';
-     return `<tr><td data-label="Sucursal">${esc(r.c)}${s?' · '+esc(s.t):''}</td><td data-label="Última">${r.ultima}%</td><td data-label="Promedio" style="color:${col};font-weight:600">${r.prom}%</td><td data-label="Auditorías">${r.n}</td><td data-label="Última fecha">${esc(new Date(r.fecha).toLocaleDateString('es-MX'))}</td></tr>`; }).join('')}</table>`
-  : '<div class="empty">Sin auditorías cerradas en los últimos 90 días.</div>';
+
+ // Fila 1: estado de tareas (dona) + cumplimiento por sucursal (barras)
+ const partes = [
+  {l:'Pendientes', v:+n('pend','Pendiente'), color:'var(--pend)'},
+  {l:'Vencidas', v:+n('venc','Vencida'), color:'var(--venc)'},
+  {l:'Por aprobar', v:+n('rev','PorAprobar'), color:'var(--rev)'},
+  {l:'Finalizadas', v:+n('done','Finalizada'), color:'var(--done)'}];
+ const cumpl = DASH ? [...DASH.cumplimiento].sort((a,b)=>a.c.localeCompare(b.c)) : [];
+ html += `<div class="grid" style="margin-bottom:20px">
+  <div class="card col-4"><div class="card-header"><h2 class="card-title">Estado de las tareas</h2><p class="card-category">Todas las sucursales</p></div>
+   <div class="card-body">${donaSvg(partes)}</div>${piePie(hora)}</div>
+  <div class="card col-8"><div class="card-header"><h2 class="card-title">Cumplimiento por sucursal</h2><p class="card-category">Promedio de los últimos 90 días</p></div>
+   <div class="card-body">${cumpl.length ? `<div class="vbars">${cumpl.map(r=>`<div class="vbar" title="${esc(r.c)}: ${r.prom}% (${r.n} auditorías)"><span class="v">${r.prom}%</span><div class="col" style="height:${Math.max(2,r.prom)}%;background:${colorCumpl(r.prom)}"></div></div>`).join('')}</div>
+    <div class="vlabels">${cumpl.map(r=>`<span>${esc(r.c)}</span>`).join('')}</div>` : '<div class="empty">Sin auditorías cerradas en los últimos 90 días.</div>'}</div>
+   <div class="card-footer"><span class="legend" style="flex-direction:row;gap:14px;flex-wrap:wrap"><span><i style="background:var(--done)"></i>≥ 90%</span><span><i style="background:var(--pend)"></i>75–89%</span><span><i style="background:var(--venc)"></i>&lt; 75%</span></span></div></div>
+ </div>`;
+
+ // Fila 2: tabla de cumplimiento + sucursales con más tareas abiertas
  const bySuc = {};
  suc.filter(t=>t.estado==='Pendiente'||t.estado==='Vencida').forEach(t=>{ bySuc[t.sucursal]=(bySuc[t.sucursal]||0)+1; });
  const top = Object.entries(bySuc).sort((a,b)=>b[1]-a[1]).slice(0,6);
  const max = top.length? top[0][1] : 1;
- html += `<div class="sec-title">Sucursales con más tareas abiertas</div><div class="bars">`;
- html += top.length ? top.map(([sc,n])=>{ const s=sucursalObj(sc); return `<div class="bar-row"><span>${esc(sc)} ${s?('· '+esc(s.t)):''}</span><div class="bar-track"><div class="bar-fill" style="width:${n/max*100}%"></div></div><span>${n}</span></div>`; }).join('') : '<div class="empty">Sin tareas abiertas.</div>';
- html += `</div>`;
- html += `<div class="sec-title">Detalle (tareas más recientes)</div><table class="rtable"><tr><th>Sucursal</th><th>Pregunta</th><th>Área</th><th>Estado</th></tr>`;
- html += suc.slice(0,30).map(t=>`<tr><td data-label="Sucursal">${esc(t.sucursal)}</td><td data-label="Pregunta">${esc(t.texto)}</td><td data-label="Área">${esc(t.area)}</td><td data-label="Estado">${badge(t)}</td></tr>`).join('');
- html += `</table>`;
- html += `<div class="sec-title">Notificaciones (historial real de Supabase)</div><div class="notiffeed" id="feed">${NOTIFS.length?NOTIFS.map(n=>`<div>${esc(n.t)} — ${esc(n.msg)}</div>`).join(''):'<div>Sin notificaciones aún.</div>'}</div>`;
+ html += `<div class="grid" style="margin-bottom:20px">
+  <div class="card col-7"><div class="card-header"><h2 class="card-title">Detalle de cumplimiento</h2><p class="card-category">Última auditoría y promedio por sucursal</p></div><div class="card-body">`
+  + (cumpl.length ? `<table class="rtable"><tr><th>Sucursal</th><th>Última</th><th>Promedio</th><th>Auditorías</th><th>Última fecha</th></tr>${DASH.cumplimiento.map(r=>{ const s=sucursalObj(r.c);
+     return `<tr><td data-label="Sucursal">${esc(r.c)}${s?' · '+esc(s.t):''}</td><td data-label="Última">${r.ultima}%</td><td data-label="Promedio" style="color:${colorCumpl(r.prom)};font-weight:500">${r.prom}%</td><td data-label="Auditorías">${r.n}</td><td data-label="Última fecha">${esc(new Date(r.fecha).toLocaleDateString('es-MX'))}</td></tr>`; }).join('')}</table>`
+   : '<div class="empty">Sin auditorías cerradas en los últimos 90 días.</div>')
+  + `</div></div>
+  <div class="card col-5"><div class="card-header"><h2 class="card-title">Tareas abiertas</h2><p class="card-category">Sucursales con más pendientes</p></div><div class="card-body"><div class="bars">`
+  + (top.length ? top.map(([sc,v])=>{ const s=sucursalObj(sc); return `<div class="bar-row"><span title="${esc(s?s.t:'')}">${esc(sc)}${s?' · '+esc(s.t):''}</span><div class="bar-track"><div class="bar-fill" style="width:${v/max*100}%"></div></div><span>${v}</span></div>`; }).join('') : '<div class="empty">Sin tareas abiertas.</div>')
+  + `</div></div>${piePie('Según las tareas más recientes')}</div>
+ </div>`;
+
+ // Fila 3: detalle de tareas + actividad
+ html += `<div class="grid">
+  <div class="card col-7"><div class="card-header"><h2 class="card-title">Tareas recientes</h2><p class="card-category">Últimas 30 tareas generadas</p></div><div class="card-body">`
+  + (suc.length ? `<table class="rtable"><tr><th>Sucursal</th><th>Pregunta</th><th>Área</th><th>Estado</th></tr>${suc.slice(0,30).map(t=>`<tr><td data-label="Sucursal">${esc(t.sucursal)}</td><td data-label="Pregunta">${esc(t.texto)}</td><td data-label="Área">${esc(t.area)}</td><td data-label="Estado">${badge(t)}</td></tr>`).join('')}</table>` : '<div class="empty">Aún no hay tareas.</div>')
+  + `</div></div>
+  <div class="card col-5"><div class="card-header"><h2 class="card-title">Actividad</h2><p class="card-category">Historial en tiempo real</p></div>
+   <div class="card-body"><div class="notiffeed" id="feed">${NOTIFS.length?NOTIFS.map(x=>`<div><time>${esc(x.t)}</time><span>${esc(x.msg)}</span></div>`).join(''):'<div class="empty">Sin actividad aún.</div>'}</div></div>${piePie(hora)}</div>
+ </div>`;
  document.getElementById('app').innerHTML = html;
 }
 
+const TITULOS = {audit:'Auditoría', tasks:'Tareas', dash:'Reportes'};
 function render(){
  if(!PERFIL) return;
  document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on', x.dataset.v===state.view));
+ $('pageTitle').textContent = TITULOS[state.view] || '';
+ const s = sucursalObj(state.sucursal);
+ $('pageCtx').textContent = state.view==='dash' ? 'Todas las sucursales' : (s ? s.c+' · '+s.t : '');
  if(state.view==='audit') renderAudit();
  else if(state.view==='tasks') renderTasks();
  else renderDash();
 }
+
+/* ---------- Menú lateral en tablet y celular ---------- */
+function menu(abrir){
+ document.body.classList.toggle('nav-open', abrir);
+ $('btnMenu').setAttribute('aria-expanded', String(abrir));
+}
+$('btnMenu').addEventListener('click', ()=> menu(!document.body.classList.contains('nav-open')));
+$('overlay').addEventListener('click', ()=> menu(false));
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') menu(false); });
+document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click', ()=> menu(false)));
+$('selSucursal').addEventListener('change', ()=> menu(false));
+$('footYear').textContent = '© ' + new Date().getFullYear();
 </script>
 </body>
 </html>
