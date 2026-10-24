@@ -383,6 +383,8 @@ async function cargarTareas(){
     id:t.id, texto: punto?.texto || '(pregunta no disponible)', area: punto?.area || 'Sin asignar', instruccion: punto?.instruccion || '',
     sucursal: t.respuestas?.auditorias?.sucursal_centro || '—', estado,
     responsable_id: t.responsable_id, revisor_id: t.revisor_id,
+    // Todas las personas que pueden resolverla (p. ej. los dos gerentes de una sucursal)
+    responsables: (t.responsables && t.responsables.length) ? t.responsables : (t.responsable_id ? [t.responsable_id] : []),
     responsableNombre: t.responsable?.nombre || null, revisorNombre: t.revisor?.nombre || null,
     diasResolver: diasRestantes(t.fecha_limite_resolver), diasAprobar: diasRestantes(t.fecha_limite_aprobar),
     aprobacionVencida: estado==='PorAprobar' && t.fecha_limite_aprobar && new Date(t.fecha_limite_aprobar)<new Date(),
@@ -391,9 +393,22 @@ async function cargarTareas(){
     fotos: []
    };
   });
-  await cargarEvidencias();
+  await Promise.all([cargarEvidencias(), cargarNombres(TASKS.flatMap(t=>t.responsables))]);
+  TASKS.forEach(t=>{ t.responsablesNombres = t.responsables.map(id=>NOMBRES[id]).filter(Boolean); });
  }catch(err){ toast('No se pudieron cargar las tareas: '+(err.message||err)); TASKS = []; }
 }
+
+// Nombres de usuarios por id (para mostrar a todos los responsables de una tarea)
+const NOMBRES = {};
+async function cargarNombres(ids){
+ const faltan = [...new Set(ids)].filter(id=>id && !NOMBRES[id]); if(!faltan.length) return;
+ try{
+  const {data, error} = await sb.from('usuarios').select('id, nombre').in('id', faltan);
+  if(error) throw error;
+  (data||[]).forEach(u=>{ NOMBRES[u.id] = u.nombre; });
+ }catch(err){ /* se muestran sin nombre */ }
+}
+function esResponsable(t){ return t.responsable_id===PERFIL.id || (t.responsables||[]).includes(PERFIL.id); }
 
 // Fotos de cada tarea. Se firman al momento de verlas (enlaces de 1 hora).
 async function cargarEvidencias(){
@@ -629,9 +644,10 @@ async function calificar(){
   let tareas = [];
   if(idsResp.length){
    const {data, error:e4} = await sb.from('tareas')
-    .select('id, respuesta_id, responsable:usuarios!tareas_responsable_id_fkey(nombre)').in('respuesta_id', idsResp);
+    .select('id, respuesta_id, responsables').in('respuesta_id', idsResp);
    if(e4) throw e4;
    tareas = data||[];
+   await cargarNombres(tareas.flatMap(t=>t.responsables||[]));
   }
   let fotosFallidas = 0;
   const creadas = conTarea.map(([q])=>{
@@ -653,7 +669,7 @@ async function calificar(){
   if(e6) throw e6;
 
   state.ultimoResultado = `<div class="result"><strong>Cumplimiento: ${pct}%</strong> · ${esc(s.t)}<br>` + (creadas.length
-   ? `${creadas.length} tarea(s) generada(s):<ul style="margin:8px 0 0">${creadas.map(({q,tarea})=>`<li>${esc(q.texto)} — ${tarea?.responsable? esc(tarea.responsable.nombre) : 'sin responsable asignado ('+esc(q.area)+')'}</li>`).join('')}</ul>`
+   ? `${creadas.length} tarea(s) generada(s):<ul style="margin:8px 0 0">${creadas.map(({q,tarea})=>`<li>${esc(q.texto)} — ${tarea?.responsables?.length ? esc(tarea.responsables.map(id=>NOMBRES[id]||'—').join(', ')) : 'sin responsable asignado ('+esc(q.area)+')'}</li>`).join('')}</ul>`
    : 'Sin incumplimientos. No se generaron tareas.')
    + (fotosFallidas ? `<p style="margin:8px 0 0;color:var(--venc)">${fotosFallidas} foto(s) no se pudieron subir.</p>` : '') + `</div>`;
   toast(creadas.length ? `Check list calificado — ${creadas.length} tarea(s) generada(s)` : 'Check list calificado');
@@ -689,7 +705,7 @@ function renderTasks(){
  } else if(PERFIL.puesto==='Auditor'){
   list = suc.filter(t=>t.revisor_id===PERFIL.id && t.estado==='PorAprobar');
  } else {
-  list = suc.filter(t=>t.responsable_id===PERFIL.id && (t.estado==='Pendiente'||t.estado==='Vencida'));
+  list = suc.filter(t=>esResponsable(t) && (t.estado==='Pendiente'||t.estado==='Vencida'));
  }
  const modoAuditor = esAdmin ? state.rolTareas==='Auditor' : PERFIL.puesto==='Auditor';
  html += list.length ? '' : `<div class="empty">No hay tareas ${modoAuditor?'por aprobar':'pendientes'} en esta sucursal.</div>`;
@@ -775,7 +791,7 @@ function taskCardColab(t){
 }
 function taskCardAuditor(t){
  return `<div class="taskcard"><div class="taskhead"><h4>${esc(t.texto)}</h4>${badge(t)}</div>
-  <div class="meta">${esc(t.sucursal)} · ${esc(t.area)}${plazoTxt(t.diasAprobar,'aprobar')}${t.responsableNombre?' · resolvió: '+esc(t.responsableNombre):''}</div>
+  <div class="meta">${esc(t.sucursal)} · ${esc(t.area)}${plazoTxt(t.diasAprobar,'aprobar')}${t.responsablesNombres?.length?' · responsable(s): '+esc(t.responsablesNombres.join(', ')):''}</div>
   <div class="evid"><strong>Evidencia del colaborador:</strong> ${esc(t.colabComentario)||'—'}</div>
   ${t.fotos && t.fotos.length ? fotosHtml(t) : '<div class="meta">Sin fotos adjuntas.</div>'}
   <textarea rows="2" placeholder="Comentario (obligatorio si rechazas)" data-rjc="${t.id}" style="width:100%;border:1px solid var(--line);border-radius:3px;padding:7px 9px;background:var(--paper);color:var(--ink)"></textarea>
