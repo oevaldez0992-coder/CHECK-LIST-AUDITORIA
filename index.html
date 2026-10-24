@@ -25,13 +25,15 @@
 *{box-sizing:border-box}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-header{position:sticky;top:0;top:env(safe-area-inset-top,0px);background:var(--paper);border-bottom:1px solid var(--line);z-index:5;padding:14px 18px}
+header{background:var(--paper);padding:14px 18px 4px}
 .htop{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;max-width:1000px;margin:0 auto}
 .brand{font-family:var(--serif);font-weight:700;font-size:17px;margin-right:auto}
 .brand span{color:var(--accent)}
 select,textarea,button,input{font-family:var(--sans);font-size:13.5px}
 select{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:3px;padding:7px 9px}
-nav{display:flex;gap:4px;max-width:1000px;margin:10px auto 0;flex-wrap:wrap}
+/* Solo la barra de pestañas queda fija al hacer scroll: ocupa poco alto en el celular */
+nav{position:sticky;top:0;top:env(safe-area-inset-top,0px);z-index:5;background:var(--paper);border-bottom:1px solid var(--line);padding:0 18px}
+.navin{display:flex;gap:4px;max-width:1000px;margin:0 auto}
 nav button{background:none;border:1px solid transparent;border-bottom:2px solid transparent;color:var(--ink-soft);padding:8px 12px;cursor:pointer;font-weight:500;border-radius:3px 3px 0 0}
 nav button.on{color:var(--ink);border-bottom:2px solid var(--accent)}
 main{max-width:1000px;margin:0 auto;padding:22px 18px 90px}
@@ -71,6 +73,7 @@ h1.pt{font-family:var(--serif);font-size:22px;margin:0 0 4px}
 .stat.pend .n{color:var(--pend)} .stat.venc .n{color:var(--venc)} .stat.rev .n{color:var(--rev)} .stat.done .n{color:var(--done)}
 .bars{display:flex;flex-direction:column;gap:8px;margin:10px 0 20px}
 .bar-row{display:grid;grid-template-columns:150px 1fr 28px;gap:8px;align-items:center;font-size:12.5px}
+.bar-row>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bar-track{background:var(--paper);border:1px solid var(--line);border-radius:2px;height:12px;overflow:hidden}
 .bar-fill{height:100%;background:var(--pend)}
 table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
@@ -81,7 +84,6 @@ td{padding:7px 8px;border-bottom:1px solid var(--line)}
 .notiffeed div:last-child{border-bottom:none}
 .filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
 .empty{color:var(--ink-soft);font-size:13.5px;padding:20px 0;text-align:center}
-@media(max-width:560px){table{display:block;overflow-x:auto}}
 button:focus-visible,select:focus-visible,textarea:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 #app{animation:fadeIn .18s ease}
 @keyframes fadeIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
@@ -91,12 +93,12 @@ button:focus-visible,select:focus-visible,textarea:focus-visible,input:focus-vis
 .progfill{height:100%;background:var(--accent);transition:width .25s ease}
 .progtxt{font-family:var(--mono);font-size:11.5px;color:var(--ink-soft);white-space:nowrap}
 .stickybar{position:sticky;bottom:0;bottom:env(safe-area-inset-bottom,0px);background:var(--paper);border-top:1px solid var(--line);margin:20px -18px -90px;padding:12px 18px calc(12px + env(safe-area-inset-bottom,0px));display:flex;justify-content:flex-end;gap:10px}
-.toasts{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:50;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
+.toasts{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));width:max-content;max-width:calc(100vw - 32px);z-index:50;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
 .toast{background:var(--ink);color:var(--paper);font-size:13px;padding:9px 16px;border-radius:99px;box-shadow:0 4px 14px rgba(0,0,0,.18);animation:toastIn .18s ease, toastOut .25s ease 2.6s forwards}
 @keyframes toastIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 @keyframes toastOut{to{opacity:0;transform:translateY(-4px)}}
 /* ---------- Login (Supabase) ---------- */
-body.locked header, body.locked main{display:none}
+body.locked header, body.locked nav, body.locked main{display:none}
 body:not(.locked) #auth{display:none}
 #auth{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px}
 .auth-card{width:100%;max-width:380px;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:28px 24px}
@@ -119,6 +121,67 @@ body:not(.locked) #auth{display:none}
 .fotos img{width:100%;height:100%;object-fit:cover;display:block}
 .firma-nombre{width:100%;max-width:300px;border:1px solid var(--line);border-radius:3px;padding:7px 9px;background:var(--paper);color:var(--ink);margin-bottom:6px;display:block}
 .aviso{font-size:12.5px;color:var(--venc);margin-left:auto;align-self:center}
+.firmas{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:0 24px}
+.toast{text-align:center}
+
+/* ================= RESPONSIVE =================
+   PC: > 1024px · Tablet: 601–1024px · Celular: ≤ 600px
+   Pantallas táctiles (celular y tablet): botones de al menos 44px de alto */
+@media (pointer:coarse){
+ .toggle button{min-height:44px;min-width:60px}
+ .btn,.foto-btn{min-height:44px}
+ nav button{min-height:44px}
+ .linkbtn{padding:8px 0}
+}
+@media (min-width:1025px){
+ main,.htop,.navin{max-width:1100px}
+ .stat-grid{grid-template-columns:repeat(4,1fr)}
+}
+@media (min-width:601px) and (max-width:1024px){
+ header{padding:14px 24px 4px} nav{padding:0 24px} main{padding:22px 24px 90px}
+ .stickybar{margin:20px -24px -90px;padding-left:24px;padding-right:24px}
+ .stat-grid{grid-template-columns:repeat(4,1fr)}
+ /* Por si la tablet no se reporta como táctil */
+ .toggle button{min-height:44px;min-width:60px}
+ .btn,.foto-btn,nav button{min-height:44px}
+}
+@media (max-width:600px){
+ /* 16px evita que el iPhone haga zoom al tocar un campo */
+ select,textarea,input{font-size:16px}
+ header{padding:12px 16px 2px} nav{padding:0 16px} main{padding:18px 16px 90px}
+ .htop{gap:8px}
+ .brand{font-size:16px}
+ .userbox span{max-width:42vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ #selSucursal{order:3;flex:1 1 100%;min-width:0}
+ .navin{gap:0}
+ nav button{flex:1;padding:10px 6px}
+ h1.pt{font-size:20px}
+ /* Pregunta arriba y botones Sí/No a todo lo ancho, fáciles de tocar con el pulgar */
+ .card,.taskcard{padding:12px}
+ .qrow{flex-direction:column;gap:10px}
+ .qtxt{max-width:none}
+ .toggle{width:100%}
+ .toggle button{flex:1}
+ .qmore{flex-wrap:wrap}
+ .qmore textarea{flex:1 1 100%}
+ .foto-btn{flex:1 1 100%;text-align:center}
+ .taskhead{align-items:flex-start}
+ .row2 .btn,.row2 .foto-btn{flex:1 1 auto}
+ .stickybar{margin:20px -16px -90px;padding-left:16px;padding-right:16px;align-items:center}
+ .stickybar .btn{flex:1}
+ .stickybar .aviso{margin-left:0;flex:0 0 auto}
+ .stat{padding:12px}
+ .stat .n{font-size:24px}
+ .bar-row{grid-template-columns:1fr 28px;gap:4px 8px}
+ .bar-row>span:first-child{grid-column:1/-1}
+ /* Tablas → tarjetas: cada fila se apila con su etiqueta */
+ table.rtable,table.rtable tbody,table.rtable tr,table.rtable td{display:block;width:100%}
+ table.rtable tr:first-child{display:none}
+ table.rtable tr{border:1px solid var(--line);border-radius:4px;background:var(--panel);padding:8px 12px;margin-bottom:8px}
+ table.rtable td{border:none;padding:3px 0;display:flex;gap:12px;justify-content:space-between;text-align:right}
+ table.rtable td::before{content:attr(data-label);font-family:var(--mono);font-size:10.5px;color:var(--ink-soft);text-align:left;flex-shrink:0;padding-top:2px}
+ .auth-card{padding:24px 18px}
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.min.js"></script>
 </head>
@@ -147,12 +210,12 @@ body:not(.locked) #auth{display:none}
   <select id="selSucursal"></select>
   <div class="userbox"><span id="userEmail"></span><button class="btn ghost" id="btnLogout">Salir</button></div>
  </div>
- <nav>
+</header>
+<nav aria-label="Secciones"><div class="navin">
   <button data-v="audit" class="on">Auditoría</button>
   <button data-v="tasks">Tareas</button>
   <button data-v="dash">Reportes</button>
- </nav>
-</header>
+</div></nav>
 <main id="app"></main>
 <div class="toasts" id="toasts"></div>
 
@@ -563,7 +626,7 @@ function renderAudit(){
    <canvas id="${id}" width="300" height="90" style="border:1px solid var(--line);border-radius:3px;background:#FFFFFF;touch-action:none;display:block;max-width:100%"></canvas>
    <button type="button" class="linkbtn" data-limpiar="${id}">Limpiar firma</button>
   </div>`;
- html += `<div class="sec-title">Firmas de conformidad (opcional)</div><div class="card">
+ html += `<div class="sec-title">Firmas de conformidad (opcional)</div><div class="card firmas">
   ${firma('firmaJefe','Firma del jefe de almacén','nombreJefe')}
   ${firma('firmaGerente','Firma del gerente','nombreGerente')}
  </div>`;
@@ -838,18 +901,18 @@ function renderDash(){
   </div>`;
  html += `<div class="sec-title">Cumplimiento por sucursal (últimos 90 días)</div>`;
  html += DASH && DASH.cumplimiento.length
-  ? `<table><tr><th>Sucursal</th><th>Última</th><th>Promedio</th><th>Auditorías</th><th>Última fecha</th></tr>${DASH.cumplimiento.map(r=>{ const s=sucursalObj(r.c); const col = r.prom>=90?'var(--done)':r.prom>=75?'var(--rev)':'var(--venc)';
-     return `<tr><td>${esc(r.c)}${s?' · '+esc(s.t):''}</td><td>${r.ultima}%</td><td style="color:${col};font-weight:600">${r.prom}%</td><td>${r.n}</td><td>${esc(new Date(r.fecha).toLocaleDateString('es-MX'))}</td></tr>`; }).join('')}</table>`
+  ? `<table class="rtable"><tr><th>Sucursal</th><th>Última</th><th>Promedio</th><th>Auditorías</th><th>Última fecha</th></tr>${DASH.cumplimiento.map(r=>{ const s=sucursalObj(r.c); const col = r.prom>=90?'var(--done)':r.prom>=75?'var(--rev)':'var(--venc)';
+     return `<tr><td data-label="Sucursal">${esc(r.c)}${s?' · '+esc(s.t):''}</td><td data-label="Última">${r.ultima}%</td><td data-label="Promedio" style="color:${col};font-weight:600">${r.prom}%</td><td data-label="Auditorías">${r.n}</td><td data-label="Última fecha">${esc(new Date(r.fecha).toLocaleDateString('es-MX'))}</td></tr>`; }).join('')}</table>`
   : '<div class="empty">Sin auditorías cerradas en los últimos 90 días.</div>';
  const bySuc = {};
  suc.filter(t=>t.estado==='Pendiente'||t.estado==='Vencida').forEach(t=>{ bySuc[t.sucursal]=(bySuc[t.sucursal]||0)+1; });
  const top = Object.entries(bySuc).sort((a,b)=>b[1]-a[1]).slice(0,6);
  const max = top.length? top[0][1] : 1;
  html += `<div class="sec-title">Sucursales con más tareas abiertas</div><div class="bars">`;
- html += top.length ? top.map(([sc,n])=>{ const s=sucursalObj(sc); return `<div class="bar-row"><span>${esc(sc)} ${s?('· '+esc(s.t.slice(0,14))):''}</span><div class="bar-track"><div class="bar-fill" style="width:${n/max*100}%"></div></div><span>${n}</span></div>`; }).join('') : '<div class="empty">Sin tareas abiertas.</div>';
+ html += top.length ? top.map(([sc,n])=>{ const s=sucursalObj(sc); return `<div class="bar-row"><span>${esc(sc)} ${s?('· '+esc(s.t)):''}</span><div class="bar-track"><div class="bar-fill" style="width:${n/max*100}%"></div></div><span>${n}</span></div>`; }).join('') : '<div class="empty">Sin tareas abiertas.</div>';
  html += `</div>`;
- html += `<div class="sec-title">Detalle (tareas más recientes)</div><table><tr><th>Sucursal</th><th>Pregunta</th><th>Área</th><th>Estado</th></tr>`;
- html += suc.slice(0,30).map(t=>`<tr><td>${esc(t.sucursal)}</td><td>${esc(t.texto)}</td><td>${esc(t.area)}</td><td>${badge(t)}</td></tr>`).join('');
+ html += `<div class="sec-title">Detalle (tareas más recientes)</div><table class="rtable"><tr><th>Sucursal</th><th>Pregunta</th><th>Área</th><th>Estado</th></tr>`;
+ html += suc.slice(0,30).map(t=>`<tr><td data-label="Sucursal">${esc(t.sucursal)}</td><td data-label="Pregunta">${esc(t.texto)}</td><td data-label="Área">${esc(t.area)}</td><td data-label="Estado">${badge(t)}</td></tr>`).join('');
  html += `</table>`;
  html += `<div class="sec-title">Notificaciones (historial real de Supabase)</div><div class="notiffeed" id="feed">${NOTIFS.length?NOTIFS.map(n=>`<div>${esc(n.t)} — ${esc(n.msg)}</div>`).join(''):'<div>Sin notificaciones aún.</div>'}</div>`;
  document.getElementById('app').innerHTML = html;
@@ -857,6 +920,7 @@ function renderDash(){
 
 function render(){
  if(!PERFIL) return;
+ document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on', x.dataset.v===state.view));
  if(state.view==='audit') renderAudit();
  else if(state.view==='tasks') renderTasks();
  else renderDash();
