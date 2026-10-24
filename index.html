@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Auditorías — Prototipo</title>
+<title>CheckList · Auditorías</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
 <style>
@@ -114,8 +114,13 @@ body:not(.locked) #auth{display:none}
 .auth-cfg{font-size:12px;background:var(--revbg);color:var(--rev);border:1px solid var(--rev);border-radius:3px;padding:9px 11px;margin-top:10px}
 .userbox{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-soft)}
 .userbox .btn{padding:6px 12px;font-size:12.5px}
+.fotos{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.fotos a{display:block;width:84px;height:84px;border:1px solid var(--line);border-radius:3px;overflow:hidden;background:var(--paper)}
+.fotos img{width:100%;height:100%;object-fit:cover;display:block}
+.firma-nombre{width:100%;max-width:300px;border:1px solid var(--line);border-radius:3px;padding:7px 9px;background:var(--paper);color:var(--ink);margin-bottom:6px;display:block}
+.aviso{font-size:12.5px;color:var(--venc);margin-left:auto;align-self:center}
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.min.js"></script>
 </head>
 <body class="locked">
 <section id="auth">
@@ -236,7 +241,7 @@ function mostrarApp(session){
 sb.auth.onAuthStateChange((event, session)=>{
  if(event==='PASSWORD_RECOVERY'){ setModo('newpass'); document.body.classList.add('locked'); return; }
  if(event==='SIGNED_IN' && modo!=='newpass') toast('Bienvenido');
- if(event==='SIGNED_OUT'){ setModo('login'); $('aPass').value=''; sesionActual=null; }
+ if(event==='SIGNED_OUT'){ setModo('login'); $('aPass').value=''; sesionActual=null; limpiarSesion(); }
  mostrarApp(session);
 });
 sb.auth.getSession().then(({data})=> mostrarApp(data.session));
@@ -251,15 +256,19 @@ let TASKS = [];
 let NOTIFS = [];
 let pendingTaskFile = {};  // {tareaId: File}
 let realtimeCh = null;
+let DASH = null;          // conteos y cumplimiento calculados en la base de datos
 
 const ROLES_BLOQUEADOS_SUCURSAL = ['Jefe de Almacen Operativo','Jefe de Almacen Administrativo','Gerente'];
-const MAPA_PUESTO = {
- 'Almacén':'Jefe de Almacen Operativo', 'Jefe de Almacén':'Jefe de Almacen Operativo',
- 'Jefe de Almacen Operativo':'Jefe de Almacen Operativo', 'Jefe de Almacen Administrativo':'Jefe de Almacen Administrativo',
- 'Gerente de Tienda':'Gerente', 'Gerente':'Gerente', 'Auditor':'Auditor'
-};
 
-function notif(msgTxt){ NOTIFS.unshift({t:new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}), msg:msgTxt}); if(NOTIFS.length>60) NOTIFS.pop(); }
+// Borra de memoria todo lo del usuario anterior (importante en equipos compartidos)
+function limpiarSesion(){
+ if(realtimeCh){ sb.removeChannel(realtimeCh); realtimeCh = null; }
+ PERFIL = null; TASKS = []; NOTIFS = []; DASH = null; pendingTaskFile = {};
+ Object.assign(state, estadoAuditoriaVacio(), {view:'audit'});
+ document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on', x.dataset.v==='audit'));
+ $('userEmail').textContent = ''; document.getElementById('app').innerHTML = '';
+}
+function fechaHora(f){ return new Date(f).toLocaleString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}); }
 function toast(msgTxt){
  const box = document.getElementById('toasts');
  const el = document.createElement('div'); el.className='toast'; el.textContent=msgTxt;
@@ -269,7 +278,6 @@ function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;
 function addDias(n){ const d=new Date(); d.setDate(d.getDate()+(n||0)); return d.toISOString(); }
 function diasRestantes(fecha){ if(!fecha) return null; return Math.ceil((new Date(fecha)-new Date())/86400000); }
 async function registrarHistorial(auditoriaId, accion){
- NOTIFS.unshift({t:new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}), msg:accion});
  try{ await sb.from('historial').insert({auditoria_id:auditoriaId||null, usuario_nombre:PERFIL?.nombre||'—', accion}); }catch(e){ /* no bloquea la UI */ }
 }
 
@@ -277,7 +285,7 @@ async function registrarHistorial(auditoriaId, accion){
 async function boot(session){
  document.getElementById('app').innerHTML = '<p class="empty">Cargando tu perfil y el checklist…</p>';
  try{
-  let {data:perfil, error} = await sb.from('usuarios').select('*').eq('auth_user_id', session.user.id).maybeSingle();
+  let {data:perfil, error} = await sb.from('usuarios').select('id, auth_user_id, nombre, rol, puesto, sucursal_centro, activo').eq('auth_user_id', session.user.id).maybeSingle();
   if(error) throw error;
   if(!perfil){
    document.getElementById('app').innerHTML = '<div class="result">Tu cuenta no tiene todavía un perfil en el sistema. Pide a un administrador que te asigne rol y sucursal, o intenta cerrar sesión y volver a entrar en unos segundos.</div>';
@@ -301,7 +309,9 @@ async function boot(session){
  const esGerencial = ['Administrador','Supervisor'].includes(PERFIL.rol) || PERFIL.puesto==='Auditor';
  document.querySelector('nav button[data-v="dash"]').style.display = esGerencial ? '' : 'none';
 
- state.rolTareas = PERFIL.puesto==='Auditor' ? 'Auditor' : (MAPA_PUESTO[PERFIL.puesto] && ['Jefe de Almacen Operativo','Jefe de Almacen Administrativo'].includes(PERFIL.puesto) ? 'Jefe de Almacén' : (PERFIL.puesto || 'Jefe de Almacén'));
+ // Solo se usa en el selector "Ver como" de Administrador/Supervisor
+ state.rolTareas = PERFIL.puesto==='Auditor' ? 'Auditor' : 'Jefe de Almacén';
+ cargarBorrador();
 
  await cargarTareas();
  await cargarHistorial();
@@ -356,7 +366,7 @@ function poblarSucursales(){
   state.sucursal = (SUCURSALES.some(s=>s.c===state.sucursal) && state.sucursal) || (SUCURSALES[0] && SUCURSALES[0].c);
   selSuc.value = state.sucursal; selSuc.disabled = false;
  }
- selSuc.onchange = e=>{ state.sucursal = e.target.value; render(); };
+ selSuc.onchange = e=>{ state.sucursal = e.target.value; guardarBorrador(); render(); };
 }
 
 async function cargarTareas(){
@@ -368,24 +378,46 @@ async function cargarTareas(){
   TASKS = (data||[]).map(t=>{
    const punto = PUNTOS.find(p=>p.id===t.respuestas?.punto_id);
    let estado = {abierta:'Pendiente', ejecutada:'PorAprobar', aprobada:'Finalizada', rechazada:'Pendiente'}[t.estado] || t.estado;
-   if(estado==='Pendiente' && t.fecha_limite_resolver && diasRestantes(t.fecha_limite_resolver)<=0) estado='Vencida';
+   if(estado==='Pendiente' && t.fecha_limite_resolver && new Date(t.fecha_limite_resolver)<new Date()) estado='Vencida';
    return {
     id:t.id, texto: punto?.texto || '(pregunta no disponible)', area: punto?.area || 'Sin asignar', instruccion: punto?.instruccion || '',
     sucursal: t.respuestas?.auditorias?.sucursal_centro || '—', estado,
     responsable_id: t.responsable_id, revisor_id: t.revisor_id,
     responsableNombre: t.responsable?.nombre || null, revisorNombre: t.revisor?.nombre || null,
     diasResolver: diasRestantes(t.fecha_limite_resolver), diasAprobar: diasRestantes(t.fecha_limite_aprobar),
-    colabComentario: t.comentario_ejecucion || '', auditorComentario: t.motivo_rechazo || ''
+    aprobacionVencida: estado==='PorAprobar' && t.fecha_limite_aprobar && new Date(t.fecha_limite_aprobar)<new Date(),
+    plazoResolver: punto?.plazoResolver ?? 5, plazoAprobar: punto?.plazoAprobar ?? 3,
+    colabComentario: t.comentario_ejecucion || '', auditorComentario: t.motivo_rechazo || '',
+    fotos: []
    };
   });
+  await cargarEvidencias();
  }catch(err){ toast('No se pudieron cargar las tareas: '+(err.message||err)); TASKS = []; }
+}
+
+// Fotos de cada tarea. Se firman al momento de verlas (enlaces de 1 hora).
+async function cargarEvidencias(){
+ const ids = TASKS.map(t=>t.id); if(!ids.length) return;
+ try{
+  const {data, error} = await sb.from('evidencias').select('tarea_id, url_archivo').in('tarea_id', ids).order('fecha');
+  if(error) throw error;
+  const porTarea = {};
+  (data||[]).forEach(e=>{ (porTarea[e.tarea_id] = porTarea[e.tarea_id]||[]).push(e.url_archivo); });
+  const rutas = [...new Set((data||[]).map(e=>e.url_archivo).filter(u=>!/^https?:/i.test(u)))];
+  const firmadas = {};
+  if(rutas.length){
+   const {data:urls} = await sb.storage.from('evidencias').createSignedUrls(rutas, 60*60);
+   (urls||[]).forEach(u=>{ if(u.signedUrl) firmadas[u.path] = u.signedUrl; });
+  }
+  TASKS.forEach(t=>{ t.fotos = (porTarea[t.id]||[]).map(u=> /^https?:/i.test(u) ? u : firmadas[u]).filter(Boolean); });
+ }catch(err){ /* sin fotos, la tarea se muestra igual */ }
 }
 
 async function cargarHistorial(){
  try{
   const {data, error} = await sb.from('historial').select('*').order('fecha', {ascending:false}).limit(40);
   if(error) throw error;
-  NOTIFS = (data||[]).map(h=>({t:new Date(h.fecha).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}), msg:h.accion}));
+  NOTIFS = (data||[]).map(h=>({t:fechaHora(h.fecha), msg:h.accion}));
  }catch(err){ /* deja NOTIFS vacío si falla */ }
 }
 
@@ -393,97 +425,148 @@ function suscribirHistorialRealtime(){
  if(realtimeCh) return;
  realtimeCh = sb.channel('historial-feed')
   .on('postgres_changes', {event:'INSERT', schema:'public', table:'historial'}, payload=>{
-   NOTIFS.unshift({t:new Date(payload.new.fecha||Date.now()).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}), msg:payload.new.accion});
+   NOTIFS.unshift({t:fechaHora(payload.new.fecha||Date.now()), msg:payload.new.accion});
    if(state.view==='dash') renderDash();
   }).subscribe();
 }
 
+// Reduce la foto de la cámara (5–10 MB) a JPEG de máx. 1600 px (~300 KB)
+async function comprimirImagen(file, maxLado=1600, calidad=0.75){
+ if(!file.type.startsWith('image/')) return file;
+ try{
+  const bmp = await createImageBitmap(file);
+  const k = Math.min(1, maxLado/Math.max(bmp.width, bmp.height));
+  const c = document.createElement('canvas'); c.width = Math.round(bmp.width*k); c.height = Math.round(bmp.height*k);
+  c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+  const blob = await new Promise(r=>c.toBlob(r, 'image/jpeg', calidad));
+  return (blob && blob.size < file.size) ? blob : file;
+ }catch(e){ return file; }
+}
+
+// Devuelve la RUTA dentro del bucket (no un enlace): el enlace se genera al mostrarla
 async function subirEvidencia(file, carpeta){
- const path = `${carpeta}/${Date.now()}_${file.name}`.replace(/\s+/g,'_');
- const {error} = await sb.storage.from('evidencias').upload(path, file, {upsert:false});
+ const img = await comprimirImagen(file);
+ const ext = img===file ? (file.name.split('.').pop()||'jpg') : 'jpg';
+ const path = `${carpeta}/${Date.now()}_${Math.random().toString(36).slice(2,8)}.${ext}`;
+ const {error} = await sb.storage.from('evidencias').upload(path, img, {upsert:false, contentType: img.type || 'image/jpeg'});
  if(error) throw error;
- const {data} = await sb.storage.from('evidencias').createSignedUrl(path, 60*60*24*365);
- return (data && data.signedUrl) || path;
+ return path;
 }
 
 /* ===================== FIRMAS (canvas, opcional) ===================== */
 function initFirma(canvasId, stateKey){
  const canvas = $(canvasId); if(!canvas) return;
  const ctx = canvas.getContext('2d');
- ctx.lineWidth = 2; ctx.lineCap = 'round';
- ctx.strokeStyle = getComputedStyle(document.body).getPropertyValue('--ink') || '#1B2430';
+ // Trazo oscuro fijo: la firma debe verse igual al imprimirla, aunque la app esté en modo oscuro
+ ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.strokeStyle = '#1B2430';
  if(state[stateKey]){ const img = new Image(); img.onload=()=>ctx.drawImage(img,0,0); img.src = state[stateKey]; }
  let drawing = false;
- function pos(e){ const r = canvas.getBoundingClientRect(); const p = e.touches ? e.touches[0] : e; return {x:p.clientX-r.left, y:p.clientY-r.top}; }
+ // Escala por si el canvas se ve más pequeño que su tamaño interno (pantallas angostas)
+ function pos(e){ const r = canvas.getBoundingClientRect(); const p = e.touches ? e.touches[0] : e; return {x:(p.clientX-r.left)*canvas.width/r.width, y:(p.clientY-r.top)*canvas.height/r.height}; }
  function start(e){ drawing = true; const p = pos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); e.preventDefault(); }
- function move(e){ if(!drawing) return; const p = pos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); state[stateKey] = canvas.toDataURL('image/png'); e.preventDefault(); }
- function end(){ drawing = false; }
- canvas.onmousedown = start; canvas.onmousemove = move; window.addEventListener('mouseup', end);
- canvas.ontouchstart = start; canvas.ontouchmove = move; canvas.ontouchend = end;
+ function move(e){ if(!drawing) return; const p = pos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); e.preventDefault(); }
+ function end(){ if(!drawing) return; drawing = false; state[stateKey] = canvas.toDataURL('image/png'); guardarBorrador(); }
+ canvas.onpointerdown = e=>{ canvas.setPointerCapture(e.pointerId); start(e); };
+ canvas.onpointermove = move; canvas.onpointerup = end; canvas.onpointercancel = end;
 }
-function limpiarFirma(canvasId, stateKey){ const c = $(canvasId); c.getContext('2d').clearRect(0,0,c.width,c.height); state[stateKey] = null; }
+function limpiarFirma(canvasId, stateKey){ const c = $(canvasId); c.getContext('2d').clearRect(0,0,c.width,c.height); state[stateKey] = null; guardarBorrador(); }
 
 /* ===================== ESTADO DE LA VISTA ===================== */
-let state = { sucursal:null, view:'audit', rolTareas:'Jefe de Almacén', respuestas:{}, comentarios:{}, fotos:{}, fotoFiles:{}, firmaJefe:null, firmaGerente:null, ultimoResultado:'' };
+function estadoAuditoriaVacio(){
+ return { respuestas:{}, comentarios:{}, fotos:{}, fotoFiles:{}, firmaJefe:null, firmaGerente:null, nombreJefe:'', nombreGerente:'', ultimoResultado:'', envio:null };
+}
+let state = Object.assign({ sucursal:null, view:'audit', rolTareas:'Jefe de Almacén' }, estadoAuditoriaVacio());
 
-document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click', ()=>{
+/* ---------- borrador local: si se recarga la página o se va la señal, no se pierde la auditoría ---------- */
+function claveBorrador(){ return PERFIL ? 'cl_borrador_'+PERFIL.id : null; }
+function guardarBorrador(){
+ const k = claveBorrador(); if(!k) return;
+ const {sucursal, respuestas, comentarios, firmaJefe, firmaGerente, nombreJefe, nombreGerente} = state;
+ try{
+  if(!Object.keys(respuestas).length && !firmaJefe && !firmaGerente) localStorage.removeItem(k);
+  else localStorage.setItem(k, JSON.stringify({sucursal, respuestas, comentarios, firmaJefe, firmaGerente, nombreJefe, nombreGerente}));
+ }catch(e){ /* almacenamiento lleno o bloqueado: se sigue sin borrador */ }
+}
+function cargarBorrador(){
+ const k = claveBorrador(); if(!k) return;
+ try{
+  const b = JSON.parse(localStorage.getItem(k) || 'null'); if(!b) return;
+  if(b.sucursal && b.sucursal!==state.sucursal && !$('selSucursal').disabled && SUCURSALES.some(s=>s.c===b.sucursal)){
+   state.sucursal = b.sucursal; $('selSucursal').value = b.sucursal;
+  }
+  Object.assign(state, {respuestas:b.respuestas||{}, comentarios:b.comentarios||{}, firmaJefe:b.firmaJefe||null, firmaGerente:b.firmaGerente||null, nombreJefe:b.nombreJefe||'', nombreGerente:b.nombreGerente||''});
+  const n = Object.keys(state.respuestas).length;
+  if(n) toast(`Se recuperó una auditoría en curso (${n} respuestas). Las fotos hay que volver a adjuntarlas.`);
+ }catch(e){}
+}
+
+document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click', async ()=>{
  state.view = b.dataset.v;
  document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on', x===b));
+ if(state.view==='dash') await Promise.all([cargarHistorial(), cargarDash()]);
  render();
 }));
 
 function sucursalObj(c){ return SUCURSALES.find(s=>s.c===c); }
 function incumple(q, valor){ return q.tipo==='Negativo' ? valor==='Si' : valor==='No'; }
+// La foto solo se guarda como evidencia de una tarea, así que solo se pide cuando la respuesta genera una
+function pideFoto(q){ const v = state.respuestas[q.id]; return !!v && incumple(q, v) && q.generaTarea; }
 
 /* ===================== VISTA: AUDITORÍA ===================== */
 function renderAudit(){
  const s = sucursalObj(state.sucursal);
  const preguntas = PUNTOS;
- const contestadas = Object.keys(state.respuestas).length;
- let html = `<h1 class="pt">Calificar check list — Orden y Limpieza</h1><p class="sub">${s?s.c+' · '+s.t:'Selecciona una sucursal'} · folio se genera al calificar</p>
+ const contestadas = preguntas.filter(q=>state.respuestas[q.id]).length;
+ const faltan = preguntas.length - contestadas;
+ let html = `<h1 class="pt">Calificar check list</h1><p class="sub">${s?esc(s.c+' · '+s.t):'Selecciona una sucursal'} · folio se genera al calificar</p>
   <div class="progwrap"><div class="progtrack"><div class="progfill" style="width:${preguntas.length?contestadas/preguntas.length*100:0}%"></div></div><span class="progtxt">${contestadas}/${preguntas.length} contestadas</span></div>`;
  let lastSec = '';
  preguntas.forEach(q=>{
   if(q.sec!==lastSec){ html += `<div class="sec-title">${esc(q.sec)}</div>`; lastSec = q.sec; }
   const v = state.respuestas[q.id];
+  // Rojo = no cumple, verde = cumple (depende de si la pregunta es positiva o negativa)
+  const cls = val => v===val ? (incumple(q,val)?'sel-si':'sel-no') : '';
   const foto = state.fotos[q.id];
   html += `<div class="card">
    <div class="qrow">
-    <div class="qtxt">${esc(q.texto)}</div>
-    <div class="toggle" data-q="${q.id}">
-     <button data-v="Si" class="${v==='Si'?'sel-si':''}">Sí</button>
-     <button data-v="No" class="${v==='No'?'sel-no':''}">No</button>
+    <div class="qtxt" id="qt-${q.id}">${esc(q.texto)}</div>
+    <div class="toggle" data-q="${q.id}" role="group" aria-labelledby="qt-${q.id}">
+     <button type="button" data-v="Si" class="${cls('Si')}" aria-pressed="${v==='Si'}">Sí</button>
+     <button type="button" data-v="No" class="${cls('No')}" aria-pressed="${v==='No'}">No</button>
     </div>
    </div>
    <div class="qmore">
     <textarea placeholder="Comentario (opcional)" data-c="${q.id}" rows="1">${esc(state.comentarios[q.id])}</textarea>
-    <button type="button" class="foto-btn ${foto?'on':''}" data-f="${q.id}">${foto?'📷 Foto adjunta':'📷 Adjuntar foto'}</button>
-    <input type="file" accept="image/*" capture="environment" style="display:none" data-finput="${q.id}">
+    ${pideFoto(q) ? `<button type="button" class="foto-btn ${foto?'on':''}" data-f="${q.id}">${foto?'📷 Foto adjunta':'📷 Adjuntar foto'}</button>
+    <input type="file" accept="image/*" capture="environment" style="display:none" data-finput="${q.id}">` : ''}
    </div>
   </div>`;
  });
+ const firma = (id, etiqueta, nombreKey) => `<div style="margin-bottom:16px">
+   <label style="font-size:12.5px;color:var(--ink-soft);display:block;margin-bottom:4px" for="${nombreKey}">${etiqueta}</label>
+   <input class="firma-nombre" id="${nombreKey}" placeholder="Nombre de quien firma" value="${esc(state[nombreKey])}" autocomplete="off">
+   <canvas id="${id}" width="300" height="90" style="border:1px solid var(--line);border-radius:3px;background:#FFFFFF;touch-action:none;display:block;max-width:100%"></canvas>
+   <button type="button" class="linkbtn" data-limpiar="${id}">Limpiar firma</button>
+  </div>`;
  html += `<div class="sec-title">Firmas de conformidad (opcional)</div><div class="card">
-  <div style="margin-bottom:16px">
-   <label style="font-size:12.5px;color:var(--ink-soft);display:block;margin-bottom:4px">Firma del jefe de almacén</label>
-   <canvas id="firmaJefe" width="300" height="90" style="border:1px solid var(--line);border-radius:3px;background:var(--paper);touch-action:none;display:block;max-width:100%"></canvas>
-   <button type="button" class="linkbtn" id="limpiarJefe">Limpiar firma</button>
-  </div>
-  <div>
-   <label style="font-size:12.5px;color:var(--ink-soft);display:block;margin-bottom:4px">Firma del gerente</label>
-   <canvas id="firmaGerente" width="300" height="90" style="border:1px solid var(--line);border-radius:3px;background:var(--paper);touch-action:none;display:block;max-width:100%"></canvas>
-   <button type="button" class="linkbtn" id="limpiarGerente">Limpiar firma</button>
-  </div>
+  ${firma('firmaJefe','Firma del jefe de almacén','nombreJefe')}
+  ${firma('firmaGerente','Firma del gerente','nombreGerente')}
  </div>`;
- html += `<div id="resultBox">${state.ultimoResultado}</div><div class="stickybar"><span class="progtxt" style="margin-right:auto;align-self:center">${contestadas} de ${preguntas.length} contestadas</span><button class="btn" id="btnCalificar" ${contestadas===0?'disabled':''}>Calificar y generar tareas</button></div>`;
+ html += `<div id="resultBox">${state.ultimoResultado}</div><div class="stickybar">${faltan?`<span class="aviso">Faltan ${faltan} pregunta(s)</span>`:''}<button class="btn" id="btnCalificar" ${faltan||!preguntas.length?'disabled':''}>Calificar y generar tareas</button></div>`;
  document.getElementById('app').innerHTML = html;
 
  document.querySelectorAll('.toggle button').forEach(b=>b.addEventListener('click', e=>{
-  const qid = e.target.parentElement.dataset.q;
-  state.respuestas[qid] = e.target.dataset.v;
+  const qid = e.currentTarget.parentElement.dataset.q;
+  if(state.envio?.respuestas){ toast('Las respuestas ya se guardaron; pulsa "Reintentar" para terminar el envío'); return; }
+  state.respuestas[qid] = e.currentTarget.dataset.v;
+  const q = PUNTOS.find(x=>x.id===qid);
+  if(q && !pideFoto(q)){ delete state.fotos[qid]; delete state.fotoFiles[qid]; }
   state.ultimoResultado = '';
+  guardarBorrador();
   renderAudit();
  }));
- document.querySelectorAll('[data-c]').forEach(t=>t.addEventListener('input', e=>{ state.comentarios[e.target.dataset.c]=e.target.value; }));
+ document.querySelectorAll('[data-c]').forEach(t=>t.addEventListener('input', e=>{ state.comentarios[e.target.dataset.c]=e.target.value; guardarBorrador(); }));
+ ['nombreJefe','nombreGerente'].forEach(k=> $(k).addEventListener('input', e=>{ state[k]=e.target.value; guardarBorrador(); }));
  document.querySelectorAll('[data-f]').forEach(b=>b.addEventListener('click', e=>{
   document.querySelector(`[data-finput="${e.currentTarget.dataset.f}"]`).click();
  }));
@@ -492,67 +575,97 @@ function renderAudit(){
   if(f){ state.fotoFiles[id]=f; state.fotos[id]=true; renderAudit(); }
  }));
  initFirma('firmaJefe','firmaJefe'); initFirma('firmaGerente','firmaGerente');
- $('limpiarJefe').addEventListener('click', ()=>limpiarFirma('firmaJefe','firmaJefe'));
- $('limpiarGerente').addEventListener('click', ()=>limpiarFirma('firmaGerente','firmaGerente'));
+ document.querySelectorAll('[data-limpiar]').forEach(b=>b.addEventListener('click', ()=>limpiarFirma(b.dataset.limpiar, b.dataset.limpiar)));
  const btnCal = document.getElementById('btnCalificar');
  if(btnCal) btnCal.addEventListener('click', calificar);
 }
 
 async function calificar(){
  const s = sucursalObj(state.sucursal);
+ const respondidas = PUNTOS.filter(q=>state.respuestas[q.id]).map(q=>[q, state.respuestas[q.id]]);
+ if(!s){ toast('Selecciona una sucursal'); return; }
+ if(respondidas.length < PUNTOS.length){ toast('Contesta todas las preguntas antes de calificar'); return; }
+ if(state.firmaJefe && !state.nombreJefe.trim()){ toast('Escribe el nombre del jefe de almacén que firma'); $('nombreJefe').focus(); return; }
+ if(state.firmaGerente && !state.nombreGerente.trim()){ toast('Escribe el nombre del gerente que firma'); $('nombreGerente').focus(); return; }
+
  const btn = document.getElementById('btnCalificar'); btn.disabled = true; btn.textContent = 'Guardando…';
  try{
-  const respondidas = Object.entries(state.respuestas);
-  const incumplidas = respondidas.filter(([qid,v])=>{ const q = PUNTOS.find(x=>x.id===qid); return q && incumple(q,v); }).length;
+  const incumplidas = respondidas.filter(([q,v])=>incumple(q,v)).length;
   const pct = respondidas.length ? Math.round((1 - incumplidas/respondidas.length)*100) : 100;
 
-  const {data:auditoria, error:e1} = await sb.from('auditorias').insert({
-   tienda: s.t, auditor_id: PERFIL.id, auditor_nombre: PERFIL.nombre, sucursal_centro: s.c,
-   porcentaje_cumplimiento: pct, estado:'cerrada'
-  }).select().single();
-  if(e1) throw e1;
+  // 1) La auditoría se crea "en_proceso". Si algo falla después, al reintentar se reutiliza
+  //    (no se duplica) y solo se marca "cerrada" cuando todo quedó guardado.
+  if(!state.envio || state.envio.sucursal!==s.c){
+   const {data:auditoria, error:e1} = await sb.from('auditorias').insert({
+    tienda: s.t, auditor_id: PERFIL.id, auditor_nombre: PERFIL.nombre, sucursal_centro: s.c, estado:'en_proceso'
+   }).select('id').single();
+   if(e1) throw e1;
+   state.envio = {sucursal:s.c, auditoriaId:auditoria.id, respuestas:null, firmas:false, fotos:{}};
+  }
+  const envio = state.envio;
 
-  const firmas = [];
-  if(state.firmaJefe) firmas.push({auditoria_id:auditoria.id, rol_firmante:'Jefe de almacén', nombre:PERFIL.nombre, imagen_firma:state.firmaJefe});
-  if(state.firmaGerente) firmas.push({auditoria_id:auditoria.id, rol_firmante:'Gerente', nombre:PERFIL.nombre, imagen_firma:state.firmaGerente});
-  if(firmas.length) await sb.from('firmas').insert(firmas);
-
-  let creadas = [];
-  for(const [qid, valor] of respondidas){
-   const q = PUNTOS.find(x=>x.id===qid); if(!q) continue;
-   const {data:resp, error:e2} = await sb.from('respuestas').insert({
-    auditoria_id:auditoria.id, punto_id:qid, valor: valor==='Si'?'si':'no',
-    es_no_conforme: incumple(q,valor), comentario:(state.comentarios[qid]||'').trim()
-   }).select().single();
+  // 2) Todas las respuestas en un solo insert: se guardan todas o ninguna.
+  //    La base de datos genera las tareas (trigger trg_respuesta_tarea).
+  if(!envio.respuestas){
+   const {data:resps, error:e2} = await sb.from('respuestas').insert(respondidas.map(([q,v])=>({
+    auditoria_id:envio.auditoriaId, punto_id:q.id, valor: v==='Si'?'si':'no',
+    es_no_conforme: incumple(q,v), comentario:(state.comentarios[q.id]||'').trim()
+   }))).select('id, punto_id');
    if(e2) throw e2;
-
-   if(incumple(q,valor) && q.generaTarea){
-    // La base de datos ya genera la tarea automáticamente (trigger trg_respuesta_tarea)
-    // al insertar una respuesta no conforme. Aquí solo la consultamos para mostrarla
-    // en pantalla y, si hay foto, adjuntarla.
-    const {data:tareaAuto} = await sb.from('tareas')
-     .select('id, responsable:usuarios!tareas_responsable_id_fkey(nombre)')
-     .eq('respuesta_id', resp.id).maybeSingle();
-
-    if(state.fotoFiles[qid] && tareaAuto){
-     try{ const url = await subirEvidencia(state.fotoFiles[qid], auditoria.id); await sb.from('evidencias').insert({tarea_id:tareaAuto.id, url_archivo:url, subido_por:PERFIL.id}); }
-     catch(errFoto){ toast('La tarea se creó, pero la foto no se pudo subir'); }
-    }
-    creadas.push({texto:q.texto, area:q.area, responsable: tareaAuto?.responsable || null});
-   }
+   envio.respuestas = {}; (resps||[]).forEach(r=>{ envio.respuestas[r.punto_id] = r.id; });
   }
 
-  state.ultimoResultado = creadas.length
-   ? `<div class="result"><strong>${creadas.length} tarea(s) generada(s)</strong> en ${esc(s.t)} y guardadas en Supabase.<ul style="margin:8px 0 0">${creadas.map(t=>`<li>${esc(t.texto)} — ${t.responsable? esc(t.responsable.nombre) : 'sin responsable asignado ('+esc(t.area)+')'}</li>`).join('')}</ul></div>`
-   : `<div class="result">Sin incumplimientos detectados en las preguntas contestadas. No se generaron tareas.</div>`;
+  if(!envio.firmas){
+   const firmas = [];
+   if(state.firmaJefe) firmas.push({auditoria_id:envio.auditoriaId, rol_firmante:'Jefe de almacén', nombre:state.nombreJefe.trim(), imagen_firma:state.firmaJefe});
+   if(state.firmaGerente) firmas.push({auditoria_id:envio.auditoriaId, rol_firmante:'Gerente', nombre:state.nombreGerente.trim(), imagen_firma:state.firmaGerente});
+   if(firmas.length){ const {error:e3} = await sb.from('firmas').insert(firmas); if(e3) throw e3; }
+   envio.firmas = true;
+  }
+
+  // 3) Tareas generadas por la base de datos, para mostrarlas y adjuntarles la foto
+  const conTarea = respondidas.filter(([q,v])=>incumple(q,v) && q.generaTarea);
+  const idsResp = conTarea.map(([q])=>envio.respuestas[q.id]).filter(Boolean);
+  let tareas = [];
+  if(idsResp.length){
+   const {data, error:e4} = await sb.from('tareas')
+    .select('id, respuesta_id, responsable:usuarios!tareas_responsable_id_fkey(nombre)').in('respuesta_id', idsResp);
+   if(e4) throw e4;
+   tareas = data||[];
+  }
+  let fotosFallidas = 0;
+  const creadas = conTarea.map(([q])=>{
+   const tarea = tareas.find(t=>t.respuesta_id===envio.respuestas[q.id]);
+   return {q, tarea};
+  });
+  for(const {q, tarea} of creadas){
+   if(!state.fotoFiles[q.id] || envio.fotos[q.id]) continue;
+   if(!tarea){ fotosFallidas++; continue; }
+   try{
+    const ruta = await subirEvidencia(state.fotoFiles[q.id], envio.auditoriaId);
+    const {error:e5} = await sb.from('evidencias').insert({tarea_id:tarea.id, url_archivo:ruta, subido_por:PERFIL.id});
+    if(e5) throw e5;
+    envio.fotos[q.id] = true;
+   }catch(errFoto){ fotosFallidas++; }
+  }
+
+  const {error:e6} = await sb.from('auditorias').update({estado:'cerrada', porcentaje_cumplimiento:pct}).eq('id', envio.auditoriaId);
+  if(e6) throw e6;
+
+  state.ultimoResultado = `<div class="result"><strong>Cumplimiento: ${pct}%</strong> · ${esc(s.t)}<br>` + (creadas.length
+   ? `${creadas.length} tarea(s) generada(s):<ul style="margin:8px 0 0">${creadas.map(({q,tarea})=>`<li>${esc(q.texto)} — ${tarea?.responsable? esc(tarea.responsable.nombre) : 'sin responsable asignado ('+esc(q.area)+')'}</li>`).join('')}</ul>`
+   : 'Sin incumplimientos. No se generaron tareas.')
+   + (fotosFallidas ? `<p style="margin:8px 0 0;color:var(--venc)">${fotosFallidas} foto(s) no se pudieron subir.</p>` : '') + `</div>`;
   toast(creadas.length ? `Check list calificado — ${creadas.length} tarea(s) generada(s)` : 'Check list calificado');
-  state.respuestas={}; state.comentarios={}; state.fotos={}; state.fotoFiles={}; state.firmaJefe=null; state.firmaGerente=null;
+  const resultado = state.ultimoResultado;
+  Object.assign(state, estadoAuditoriaVacio(), {ultimoResultado:resultado, envio:null});
+  guardarBorrador();
   await cargarTareas();
   renderAudit();
   window.scrollTo({top:0, behavior:'smooth'});
  }catch(err){
-  toast('No se pudo guardar la auditoría: '+(err.message||err));
-  btn.disabled = false; btn.textContent = 'Calificar y generar tareas';
+  toast('No se pudo guardar la auditoría: '+(err.message||err)+'. Puedes reintentar sin que se duplique.');
+  btn.disabled = false; btn.textContent = 'Reintentar';
  }
 }
 
@@ -599,15 +712,18 @@ function renderTasks(){
   if(!c){ toast('Agrega un comentario antes de enviar a aprobación'); document.querySelector(`[data-cin="${id}"]`).focus(); return; }
   e.target.disabled = true;
   try{
-   let fotoUrl = null;
-   if(pendingTaskFile[id]) fotoUrl = await subirEvidencia(pendingTaskFile[id], id);
-   const {error} = await sb.from('tareas').update({estado:'ejecutada', comentario_ejecucion:c, fecha_ejecucion:new Date().toISOString(), fecha_limite_aprobar:addDias(3)}).eq('id', id);
-   if(error) throw error;
-   if(fotoUrl) await sb.from('evidencias').insert({tarea_id:id, url_archivo:fotoUrl, subido_por:PERFIL.id});
    const t = TASKS.find(x=>x.id===id);
+   // Primero la foto: si falla, la tarea no se envía sin su evidencia
+   if(pendingTaskFile[id]){
+    const ruta = await subirEvidencia(pendingTaskFile[id], id);
+    const {error:eF} = await sb.from('evidencias').insert({tarea_id:id, url_archivo:ruta, subido_por:PERFIL.id});
+    if(eF) throw eF;
+    delete pendingTaskFile[id];
+   }
+   const {error} = await sb.from('tareas').update({estado:'ejecutada', comentario_ejecucion:c, fecha_ejecucion:new Date().toISOString(), fecha_limite_aprobar:addDias(t?.plazoAprobar ?? 3)}).eq('id', id);
+   if(error) throw error;
    await registrarHistorial(null, `"${t?.texto||id}" (${t?.sucursal||''}) enviada a aprobación por ${PERFIL.nombre}`);
    toast('Tarea enviada a aprobación');
-   delete pendingTaskFile[id];
    await cargarTareas(); renderTasks();
   }catch(err){ toast('No se pudo enviar la tarea: '+(err.message||err)); e.target.disabled = false; }
  }));
@@ -628,9 +744,9 @@ function renderTasks(){
   if(!c){ toast('Indica el motivo del rechazo'); document.querySelector(`[data-rjc="${id}"]`).focus(); return; }
   e.target.disabled = true;
   try{
-   const {error} = await sb.from('tareas').update({estado:'rechazada', motivo_rechazo:c, fecha_decision:new Date().toISOString(), fecha_limite_resolver:addDias(5)}).eq('id', id);
-   if(error) throw error;
    const t = TASKS.find(x=>x.id===id);
+   const {error} = await sb.from('tareas').update({estado:'rechazada', motivo_rechazo:c, fecha_decision:new Date().toISOString(), fecha_limite_resolver:addDias(t?.plazoResolver ?? 5)}).eq('id', id);
+   if(error) throw error;
    await registrarHistorial(null, `"${t?.texto||id}" (${t?.sucursal||''}) rechazada por ${PERFIL.nombre}`);
    toast('Tarea rechazada, regresa al colaborador');
    await cargarTareas(); renderTasks();
@@ -640,13 +756,18 @@ function renderTasks(){
 function badge(t){
  return t.estado==='Pendiente'?'<span class="badge b-pend">Pendiente</span>'
   :t.estado==='Vencida'?'<span class="badge b-venc">Vencida</span>'
-  :t.estado==='PorAprobar'?'<span class="badge b-rev">Por aprobar</span>'
+  :t.estado==='PorAprobar'?(t.aprobacionVencida?'<span class="badge b-venc">Aprobación vencida</span>':'<span class="badge b-rev">Por aprobar</span>')
   :'<span class="badge b-done">Finalizada</span>';
 }
+function fotosHtml(t){
+ return t.fotos && t.fotos.length ? `<div class="fotos">${t.fotos.map((u,i)=>`<a href="${esc(u)}" target="_blank" rel="noopener" title="Ver foto ${i+1}"><img src="${esc(u)}" alt="Evidencia ${i+1}" loading="lazy"></a>`).join('')}</div>` : '';
+}
+function plazoTxt(d, verbo){ return d==null ? '' : d<0 ? ` · ${verbo} venció hace ${-d} día(s)` : d===0 ? ` · ${verbo} vence hoy` : ` · ${verbo} en ${d} día(s)`; }
 function taskCardColab(t){
  return `<div class="taskcard"><div class="taskhead"><h4>${esc(t.texto)}</h4>${badge(t)}</div>
-  <div class="meta">${esc(t.sucursal)} · ${esc(t.area)}${t.diasResolver!=null?' · vence en '+t.diasResolver+' día(s)':''}</div>
+  <div class="meta">${esc(t.sucursal)} · ${esc(t.area)}${plazoTxt(t.diasResolver,'resolver')}</div>
   <div class="evid"><strong>Instrucción:</strong> ${esc(t.instruccion)||'—'}</div>
+  ${fotosHtml(t)}
   ${t.auditorComentario?`<div class="evid" style="border-color:var(--venc);background:var(--vencbg)"><strong>Rechazada por el auditor:</strong> ${esc(t.auditorComentario)}</div>`:''}
   <textarea rows="2" placeholder="Comentario al resolver" data-cin="${t.id}" style="width:100%;border:1px solid var(--line);border-radius:3px;padding:7px 9px;background:var(--paper);color:var(--ink)"></textarea>
   <div class="row2"><button type="button" class="foto-btn" data-f="${t.id}">📷 Adjuntar foto</button><input type="file" accept="image/*" capture="environment" style="display:none" data-finput="${t.id}"><button class="btn" data-send="${t.id}">Enviar a aprobación</button></div>
@@ -654,24 +775,56 @@ function taskCardColab(t){
 }
 function taskCardAuditor(t){
  return `<div class="taskcard"><div class="taskhead"><h4>${esc(t.texto)}</h4>${badge(t)}</div>
-  <div class="meta">${esc(t.sucursal)} · ${esc(t.area)}${t.diasAprobar!=null?' · aprobar en '+t.diasAprobar+' día(s)':''}${t.responsableNombre?' · resolvió: '+esc(t.responsableNombre):''}</div>
+  <div class="meta">${esc(t.sucursal)} · ${esc(t.area)}${plazoTxt(t.diasAprobar,'aprobar')}${t.responsableNombre?' · resolvió: '+esc(t.responsableNombre):''}</div>
   <div class="evid"><strong>Evidencia del colaborador:</strong> ${esc(t.colabComentario)||'—'}</div>
+  ${t.fotos && t.fotos.length ? fotosHtml(t) : '<div class="meta">Sin fotos adjuntas.</div>'}
   <textarea rows="2" placeholder="Comentario (obligatorio si rechazas)" data-rjc="${t.id}" style="width:100%;border:1px solid var(--line);border-radius:3px;padding:7px 9px;background:var(--paper);color:var(--ink)"></textarea>
   <div class="row2"><button class="btn" data-ap="${t.id}">Aprobar</button><button class="btn ghost" data-rj="${t.id}">Rechazar</button></div>
  </div>`;
 }
 
 /* ===================== VISTA: REPORTES ===================== */
+// Los totales se cuentan en la base de datos (no dependen de cuántas tareas se cargaron en pantalla)
+async function cargarDash(){
+ const ahora = new Date().toISOString();
+ const contar = q => q.then(({count, error})=>{ if(error) throw error; return count||0; });
+ const base = () => sb.from('tareas').select('id', {count:'exact', head:true});
+ try{
+  const desde = addDias(-90);
+  const [pend, venc, rev, done, auds] = await Promise.all([
+   contar(base().in('estado',['abierta','rechazada']).or(`fecha_limite_resolver.is.null,fecha_limite_resolver.gte."${ahora}"`)),
+   contar(base().in('estado',['abierta','rechazada']).lt('fecha_limite_resolver', ahora)),
+   contar(base().eq('estado','ejecutada')),
+   contar(base().eq('estado','aprobada')),
+   sb.from('auditorias').select('sucursal_centro, porcentaje_cumplimiento, fecha').eq('estado','cerrada').gte('fecha', desde).order('fecha', {ascending:false}).limit(2000)
+  ]);
+  if(auds.error) throw auds.error;
+  const porSuc = {};
+  (auds.data||[]).forEach(a=>{
+   if(a.porcentaje_cumplimiento==null) return;
+   const p = porSuc[a.sucursal_centro] = porSuc[a.sucursal_centro] || {ultima:Number(a.porcentaje_cumplimiento), fecha:a.fecha, suma:0, n:0};
+   p.suma += Number(a.porcentaje_cumplimiento); p.n++;
+  });
+  DASH = {pend, venc, rev, done, cumplimiento: Object.entries(porSuc).map(([c,p])=>({c, ultima:p.ultima, fecha:p.fecha, prom:Math.round(p.suma/p.n), n:p.n})).sort((a,b)=>a.prom-b.prom)};
+ }catch(err){ DASH = null; toast('No se pudieron calcular los totales: '+(err.message||err)); }
+}
+
 function renderDash(){
  const suc = TASKS;
  const c = e=>suc.filter(t=>t.estado===e).length;
+ const n = (k, e) => DASH ? DASH[k] : c(e);
  let html = `<h1 class="pt">Reportes</h1><p class="sub">Todas las sucursales · datos en vivo desde Supabase</p>
   <div class="stat-grid">
-   <div class="stat pend"><div class="n">${c('Pendiente')}</div><div class="l">Pendientes</div></div>
-   <div class="stat venc"><div class="n">${c('Vencida')}</div><div class="l">Vencidas</div></div>
-   <div class="stat rev"><div class="n">${c('PorAprobar')}</div><div class="l">Por aprobar</div></div>
-   <div class="stat done"><div class="n">${c('Finalizada')}</div><div class="l">Finalizadas</div></div>
+   <div class="stat pend"><div class="n">${n('pend','Pendiente')}</div><div class="l">Pendientes</div></div>
+   <div class="stat venc"><div class="n">${n('venc','Vencida')}</div><div class="l">Vencidas</div></div>
+   <div class="stat rev"><div class="n">${n('rev','PorAprobar')}</div><div class="l">Por aprobar</div></div>
+   <div class="stat done"><div class="n">${n('done','Finalizada')}</div><div class="l">Finalizadas</div></div>
   </div>`;
+ html += `<div class="sec-title">Cumplimiento por sucursal (últimos 90 días)</div>`;
+ html += DASH && DASH.cumplimiento.length
+  ? `<table><tr><th>Sucursal</th><th>Última</th><th>Promedio</th><th>Auditorías</th><th>Última fecha</th></tr>${DASH.cumplimiento.map(r=>{ const s=sucursalObj(r.c); const col = r.prom>=90?'var(--done)':r.prom>=75?'var(--rev)':'var(--venc)';
+     return `<tr><td>${esc(r.c)}${s?' · '+esc(s.t):''}</td><td>${r.ultima}%</td><td style="color:${col};font-weight:600">${r.prom}%</td><td>${r.n}</td><td>${esc(new Date(r.fecha).toLocaleDateString('es-MX'))}</td></tr>`; }).join('')}</table>`
+  : '<div class="empty">Sin auditorías cerradas en los últimos 90 días.</div>';
  const bySuc = {};
  suc.filter(t=>t.estado==='Pendiente'||t.estado==='Vencida').forEach(t=>{ bySuc[t.sucursal]=(bySuc[t.sucursal]||0)+1; });
  const top = Object.entries(bySuc).sort((a,b)=>b[1]-a[1]).slice(0,6);
@@ -679,7 +832,7 @@ function renderDash(){
  html += `<div class="sec-title">Sucursales con más tareas abiertas</div><div class="bars">`;
  html += top.length ? top.map(([sc,n])=>{ const s=sucursalObj(sc); return `<div class="bar-row"><span>${esc(sc)} ${s?('· '+esc(s.t.slice(0,14))):''}</span><div class="bar-track"><div class="bar-fill" style="width:${n/max*100}%"></div></div><span>${n}</span></div>`; }).join('') : '<div class="empty">Sin tareas abiertas.</div>';
  html += `</div>`;
- html += `<div class="sec-title">Detalle</div><table><tr><th>Sucursal</th><th>Pregunta</th><th>Área</th><th>Estado</th></tr>`;
+ html += `<div class="sec-title">Detalle (tareas más recientes)</div><table><tr><th>Sucursal</th><th>Pregunta</th><th>Área</th><th>Estado</th></tr>`;
  html += suc.slice(0,30).map(t=>`<tr><td>${esc(t.sucursal)}</td><td>${esc(t.texto)}</td><td>${esc(t.area)}</td><td>${badge(t)}</td></tr>`).join('');
  html += `</table>`;
  html += `<div class="sec-title">Notificaciones (historial real de Supabase)</div><div class="notiffeed" id="feed">${NOTIFS.length?NOTIFS.map(n=>`<div>${esc(n.t)} — ${esc(n.msg)}</div>`).join(''):'<div>Sin notificaciones aún.</div>'}</div>`;
